@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../LandingPage/Navbar'
 import Footer from '../LandingPage/Footer'
 
@@ -91,9 +92,15 @@ function EventSection({ title, events, actionText }) {
 }
 
 export default function EventsPage() {
+  const navigate = useNavigate()
+
+  const handleBecomeMember = () => {
+    navigate('/membership/apply')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar />
+      <Navbar onBecomeMemberClick={handleBecomeMember} />
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-0">
         <header className="mb-10">
           <p className="text-sm uppercase tracking-[0.25em] text-yellow-500">Announcements</p>
