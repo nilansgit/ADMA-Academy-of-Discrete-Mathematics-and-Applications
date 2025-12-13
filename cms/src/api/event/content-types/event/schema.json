@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "events",
+  "info": {
+    "singularName": "event",
+    "pluralName": "events",
+    "displayName": "Event"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string",
+      "required": true
+    },
+    "Date": {
+      "type": "date"
+    },
+    "Subtitle": {
+      "type": "string"
+    },
+    "Organiser": {
+      "type": "string"
+    },
+    "PDF": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "files"
+      ]
+    },
+    "Event_Status": {
+      "type": "enumeration",
+      "required": true,
+      "default": "Upcoming",
+      "enum": [
+        "Upcoming",
+        "Past"
+      ]
+    },
+    "Order_Priority": {
+      "type": "integer"
+    }
+  }
+}
