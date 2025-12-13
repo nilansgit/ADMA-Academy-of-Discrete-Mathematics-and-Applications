@@ -4,6 +4,7 @@ import Login from './components/MemberPage/Login'
 import MembershipForm from './components/MemberPage/MembershipForm'
 import EventsPage from './components/EventsPage/EventsPage'
 import TreasurerDashboard from './components/Dashboard/TreasurerDashboard'
+import SecretaryDashboard from './components/Dashboard/SecretaryDashboard'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/membership/apply" element={<MembershipForm />} />
         <Route path="/dashboard/treasurer" element={<TreasurerDashboard />} />
+        <Route path="/dashboard/secretary" element={<SecretaryDashboard />} />
       </Routes>
     </Router>
   )
