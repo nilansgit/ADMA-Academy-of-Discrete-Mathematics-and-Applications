@@ -1,0 +1,44 @@
+{
+  "kind": "collectionType",
+  "collectionName": "office_bearers",
+  "info": {
+    "singularName": "office-bearer",
+    "pluralName": "office-bearers",
+    "displayName": "Office Bearer"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "string",
+      "required": true
+    },
+    "Picture": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "University": {
+      "type": "string"
+    },
+    "Email": {
+      "type": "email"
+    },
+    "office_role": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::office-role.office-role",
+      "inversedBy": "office_bearers"
+    },
+    "office_term": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::office-term.office-term",
+      "inversedBy": "office_bearers"
+    }
+  }
+}

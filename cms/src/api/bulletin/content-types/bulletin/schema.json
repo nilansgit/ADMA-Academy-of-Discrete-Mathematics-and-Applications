@@ -1,10 +1,10 @@
 {
   "kind": "collectionType",
-  "collectionName": "events",
+  "collectionName": "bulletins",
   "info": {
-    "singularName": "event",
-    "pluralName": "events",
-    "displayName": "Event"
+    "singularName": "bulletin",
+    "pluralName": "bulletins",
+    "displayName": "Bulletin"
   },
   "options": {
     "draftAndPublish": true
@@ -21,13 +21,11 @@
     "Date": {
       "type": "date"
     },
-    "Event_Status": {
+    "Bulletin_Status": {
       "type": "enumeration",
       "required": true,
-      "default": "Upcoming",
       "enum": [
-        "Upcoming",
-        "Past",
+        "Current",
         "Archived"
       ]
     },

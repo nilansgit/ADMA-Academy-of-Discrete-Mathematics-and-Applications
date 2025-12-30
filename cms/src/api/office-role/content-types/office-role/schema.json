@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "office_roles",
+  "info": {
+    "singularName": "office-role",
+    "pluralName": "office-roles",
+    "displayName": "Office Role"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string",
+      "required": true
+    },
+    "office_bearers": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::office-bearer.office-bearer",
+      "mappedBy": "office_role"
+    },
+    "Order": {
+      "type": "integer",
+      "required": true
+    }
+  }
+}
