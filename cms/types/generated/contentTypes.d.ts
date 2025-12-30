@@ -430,6 +430,72 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBulletinBulletin extends Struct.CollectionTypeSchema {
+  collectionName: 'bulletins';
+  info: {
+    displayName: 'Bulletin';
+    pluralName: 'bulletins';
+    singularName: 'bulletin';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    Bulletin_Status: Schema.Attribute.Enumeration<['Current', 'Archived']> &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Date: Schema.Attribute.Date;
+    Description: Schema.Attribute.String;
+    Link: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::bulletin.bulletin'
+    > &
+      Schema.Attribute.Private;
+    PDF: Schema.Attribute.Media<'files'>;
+    publishedAt: Schema.Attribute.DateTime;
+    Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiConferenceConference extends Struct.CollectionTypeSchema {
+  collectionName: 'conferences';
+  info: {
+    displayName: 'Conference';
+    pluralName: 'conferences';
+    singularName: 'conference';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Date: Schema.Attribute.Date;
+    Description: Schema.Attribute.String;
+    Link: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::conference.conference'
+    > &
+      Schema.Attribute.Private;
+    PDF: Schema.Attribute.Media<'files'>;
+    publishedAt: Schema.Attribute.DateTime;
+    Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   collectionName: 'events';
   info: {
@@ -445,17 +511,157 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     Date: Schema.Attribute.Date;
-    Event_Status: Schema.Attribute.Enumeration<['Upcoming', 'Past']> &
+    Description: Schema.Attribute.String;
+    Event_Status: Schema.Attribute.Enumeration<
+      ['Upcoming', 'Past', 'Archived']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Upcoming'>;
+    Link: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::event.event'> &
       Schema.Attribute.Private;
-    Order_Priority: Schema.Attribute.Integer;
-    Organiser: Schema.Attribute.String;
     PDF: Schema.Attribute.Media<'files'>;
     publishedAt: Schema.Attribute.DateTime;
-    Subtitle: Schema.Attribute.String;
+    Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiGalleryImageGalleryImage
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'gallery_images';
+  info: {
+    displayName: 'Gallery Image';
+    pluralName: 'gallery-images';
+    singularName: 'gallery-image';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Description: Schema.Attribute.String;
+    Image: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::gallery-image.gallery-image'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    Title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiOfficeBearerOfficeBearer
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'office_bearers';
+  info: {
+    displayName: 'Office Bearer';
+    pluralName: 'office-bearers';
+    singularName: 'office-bearer';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Email: Schema.Attribute.Email;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::office-bearer.office-bearer'
+    > &
+      Schema.Attribute.Private;
+    Name: Schema.Attribute.String & Schema.Attribute.Required;
+    office_role: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::office-role.office-role'
+    >;
+    office_term: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::office-term.office-term'
+    >;
+    Picture: Schema.Attribute.Media<'images'>;
+    publishedAt: Schema.Attribute.DateTime;
+    University: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiOfficeRoleOfficeRole extends Struct.CollectionTypeSchema {
+  collectionName: 'office_roles';
+  info: {
+    displayName: 'Office Role';
+    pluralName: 'office-roles';
+    singularName: 'office-role';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::office-role.office-role'
+    > &
+      Schema.Attribute.Private;
+    office_bearers: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::office-bearer.office-bearer'
+    >;
+    Order: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiOfficeTermOfficeTerm extends Struct.CollectionTypeSchema {
+  collectionName: 'office_terms';
+  info: {
+    displayName: 'Office Term';
+    pluralName: 'office-terms';
+    singularName: 'office-term';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    End: Schema.Attribute.Date & Schema.Attribute.Required;
+    IsActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::office-term.office-term'
+    > &
+      Schema.Attribute.Private;
+    office_bearers: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::office-bearer.office-bearer'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    Start: Schema.Attribute.Date & Schema.Attribute.Required;
     Title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -973,7 +1179,13 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::bulletin.bulletin': ApiBulletinBulletin;
+      'api::conference.conference': ApiConferenceConference;
       'api::event.event': ApiEventEvent;
+      'api::gallery-image.gallery-image': ApiGalleryImageGalleryImage;
+      'api::office-bearer.office-bearer': ApiOfficeBearerOfficeBearer;
+      'api::office-role.office-role': ApiOfficeRoleOfficeRole;
+      'api::office-term.office-term': ApiOfficeTermOfficeTerm;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
