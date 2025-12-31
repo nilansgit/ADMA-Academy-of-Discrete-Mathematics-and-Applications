@@ -3,8 +3,7 @@ import Footer from "../LandingPage/Footer";
 import { useState, useEffect } from "react";
 import { X, Maximize } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const STRAPI_BASE_URL = "http://localhost:1337";
+import { STRAPI_BASE_URL } from "../../constants";
 
 function ImageModal({ image, onClose }) {
   if (!image) return null;

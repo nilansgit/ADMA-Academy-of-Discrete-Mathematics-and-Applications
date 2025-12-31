@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { STRAPI_BASE_URL } from "../../constants";
 
 export default function BulletinBoard() {
   const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState([]);
 
-  const STRAPI_BASE_URL = "http://localhost:1337";
   const BULLETIN_STATUS = "Current";
   const LIMIT = 3;
 

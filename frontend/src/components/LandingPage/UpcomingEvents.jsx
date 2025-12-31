@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { STRAPI_BASE_URL } from "../../constants";
 
 export default function UpcomingEvents() {
-  const STRAPI_BASE_URL = "http://localhost:1337";
   const EVENT_STATUS = "Upcoming";
   const LIMIT = 3;
 
