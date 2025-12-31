@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../LandingPage/Navbar";
 import Footer from "../LandingPage/Footer";
-
-const STRAPI_BASE_URL = "http://localhost:1337";
+import { STRAPI_BASE_URL } from "../../constants";
 
 function MemberCard({ member }) {
   const imageUrl = member.Picture?.url
