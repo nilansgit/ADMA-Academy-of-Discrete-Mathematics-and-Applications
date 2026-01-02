@@ -2,7 +2,6 @@
 
 # dependencies
 node_modules/
-uploads/
 /.pnp
 .pnp.*
 .yarn/*
@@ -43,5 +42,13 @@ yarn-error.log*
 next-env.d.ts
 
 .vscode/
+
+# Ignore all uploaded files
+backend/uploads/**
+
+# Allow folder structure + keep files
+!backend/uploads/**/
+!backend/uploads/**/.gitkeep
+
 
 
