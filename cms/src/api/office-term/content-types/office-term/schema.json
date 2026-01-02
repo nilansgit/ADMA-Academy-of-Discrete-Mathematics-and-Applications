@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "office_terms",
+  "info": {
+    "singularName": "office-term",
+    "pluralName": "office-terms",
+    "displayName": "Office Term"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string",
+      "required": true
+    },
+    "Start": {
+      "type": "date",
+      "required": true
+    },
+    "End": {
+      "type": "date",
+      "required": true
+    },
+    "IsActive": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    "office_bearers": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::office-bearer.office-bearer",
+      "mappedBy": "office_term"
+    }
+  }
+}

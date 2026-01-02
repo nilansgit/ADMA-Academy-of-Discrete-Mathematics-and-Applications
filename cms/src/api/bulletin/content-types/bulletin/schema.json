@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "bulletins",
+  "info": {
+    "singularName": "bulletin",
+    "pluralName": "bulletins",
+    "displayName": "Bulletin"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string",
+      "required": true
+    },
+    "Description": {
+      "type": "string"
+    },
+    "Date": {
+      "type": "date"
+    },
+    "Bulletin_Status": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "Current",
+        "Archived"
+      ]
+    },
+    "PDF": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "files"
+      ]
+    },
+    "Link": {
+      "type": "string"
+    }
+  }
+}
