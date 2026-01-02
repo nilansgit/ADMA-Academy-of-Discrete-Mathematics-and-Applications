@@ -5,6 +5,7 @@ import MembershipForm from './components/MemberPage/MembershipForm'
 import EventsPage from './components/EventsPage/EventsPage'
 import TreasurerDashboard from './components/Dashboard/TreasurerDashboard'
 import SecretaryDashboard from './components/Dashboard/SecretaryDashboard'
+import  ProtectedRoute  from './auth/ProtectedRoute'
 
 function App() {
   return (
@@ -13,9 +14,21 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/events" element={<EventsPage />} />
-        <Route path="/membership/apply" element={<MembershipForm />} />
-        <Route path="/dashboard/treasurer" element={<TreasurerDashboard />} />
-        <Route path="/dashboard/secretary" element={<SecretaryDashboard />} />
+        <Route path="/membership/apply/:uuid" element={<MembershipForm />} />
+        <Route path="/dashboard/treasurer"
+         element={
+          <ProtectedRoute allowedRoles={['treasurer']}>
+            <TreasurerDashboard />
+          </ProtectedRoute>
+          }
+        />
+        <Route path="/dashboard/secretary"
+         element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <SecretaryDashboard />
+          </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   )

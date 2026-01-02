@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    role: ''
+    password: ''
+    // role: ''
   })
 
   const handleChange = (e) => {
@@ -15,20 +17,41 @@ export default function Login() {
     }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Add your login logic here
-    console.log('Login submitted:', formData)
+  const handleLogin = async (email,password) => {
+    try{
+      const url = new URL("http://localhost:3000/auth/login")
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({email,password})
+      });
+      const data = await res.json();
+
+      if(!res.ok){
+        alert(data.error)
+      }
+
+      window.localStorage.setItem("token", data.token);
+      window.localStorage.setItem("role", data.role);
+
+      navigate(`/dashboard/${data.role.toLowerCase()}`);
+
+    }catch(err){
+      console.error(err, "catch");
+    }
   }
 
-  const roles = [
-    'Select Role',
-    'Member',
-    'Executive Committee',
-    'Editor',
-    'Reviewer',
-    'Admin'
-  ]
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const {email, password} = formData;
+    handleLogin(email,password);
+  }
+
+  // const roles = [
+  //   'Select Role',
+  //   "Treasurer",
+  //   "Secretary"
+  // ]
 
   return (
     <div className="min-h-screen flex">
@@ -54,7 +77,7 @@ export default function Login() {
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">Log in</h1>
+          <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">Official Login</h1>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,7 +116,7 @@ export default function Login() {
             </div>
 
             {/* Select Role */}
-            <div>
+            {/* <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
                 Select Role
               </label>
@@ -118,7 +141,7 @@ export default function Login() {
                   </svg>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Login Button */}
             <button

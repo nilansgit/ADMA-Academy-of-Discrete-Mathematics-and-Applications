@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { EDITABLE_STATES } from '../../constants/formStatus';
+import validateFile from '../../utils/fileLimit.js'
 
 const CITIZENSHIP_TYPES = {
   indian: {
-    label: 'Indian Citizen',
+    label: 'Indian',
     currency: 'INR',
     membershipTypes: [
       { id: 'individual', title: 'Life Member (Individual)', fee: 2000, description: 'Lifetime access for individual members' },
@@ -10,31 +13,15 @@ const CITIZENSHIP_TYPES = {
       { id: 'patron', title: 'Patron Life Member', fee: 15000, description: 'Premium patron privileges and recognition' },
       { id: 'institutional', title: 'Institutional Member', fee: 3000, description: 'Up to two authorised representatives' },
     ],
-    requirements: [
-      'Passport size photograph (≤2MB)',
-      'Date of Birth',
-      'Qualification',
-      'Current affiliation',
-      'Address + email',
-      'Mobile phone (WhatsApp preferred)',
-    ],
   },
   foreign: {
-    label: 'Foreign Citizen',
+    label: 'International',
     currency: 'USD',
     membershipTypes: [
       { id: 'individual_foreign', title: 'Life Member (Individual)', fee: 200, description: 'Lifetime access for overseas members' },
       { id: 'benefactor_foreign', title: 'Benefactor Life Member', fee: 350, description: 'Support ADMA initiatives internationally' },
       { id: 'patron_foreign', title: 'Patron Life Member', fee: 500, description: 'Premium patron benefits' },
       { id: 'institutional_foreign', title: 'Institutional Member', fee: 250, description: 'Two nominated contacts' },
-    ],
-    requirements: [
-      'Passport size photograph (≤2MB)',
-      'Date of Birth',
-      'Qualification',
-      'Current affiliation',
-      'Address with country + email',
-      'Mobile phone with country code',
     ],
   },
 }
@@ -49,35 +36,79 @@ const phoneCountryCodes = [
 
 const countries = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'France', 'Germany', 'United Arab Emirates']
 
+const BANK_DETAILS = {
+  accountName: 'Academy of Discrete Mathematics and Applications',
+  accountNumber: '1234567890123456',
+  ifscCode: 'BANK0001234',
+  bankName: 'State Bank of India',
+  branch: 'Mysore Main Branch',
+  upiId: 'adma@paytm',
+  swiftCode: 'SBININBB123',
+}
+
+
+const MAX_PHOTO_SIZE = 2 * 1024 * 1024;    // 2MB
+const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;  // 5MB
+
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/jpg"];
+const RECEIPT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "application/pdf"
+];
+
+// Default form data values
+const DEFAULT_FORM_DATA = {
+  // Membership type fields
+  citizenship: 'indian',
+  membershipType: {
+    id: 'individual',
+    title: 'Life Member (Individual)',
+    fee: 2000,
+    description: 'Lifetime access for individual members'
+  },
+  // Step 1 fields
+  name: '',
+  dobDay: '01',
+  dobMonth: 'January',
+  dobYear: '1990',
+  qualification: '',
+  affiliation: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: 'India',
+  phoneCode: '+91',
+  phoneNumber: '',
+  email: '',
+  passportNumber: '',
+  representativeOne: '',
+  representativeTwo: '',
+  passportPhoto: '',
+  // Step 2 fields
+  paymentReference: '',
+  paymentReceipt: '',
+  notes: '',
+}
+
+
+const BACKEND_URL  = "http://localhost:3000"
+
 export default function MembershipForm() {
+  const {uuid} = useParams();
+  const [step, setStep] = useState(1)
   const [citizenship, setCitizenship] = useState('indian')
   const [selectedType, setSelectedType] = useState(CITIZENSHIP_TYPES.indian.membershipTypes[0])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [statusMessage, setStatusMessage] = useState('')
-  const [formData, setFormData] = useState({
-    name: '',
-    dobDay: '01',
-    dobMonth: 'January',
-    dobYear: '1990',
-    qualification: '',
-    affiliation: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: 'India',
-    phoneCode: '+91',
-    phoneNumber: '',
-    email: '',
-    paymentReference: '',
-    passportNumber: '',
-    representativeOne: '',
-    representativeTwo: '',
-    notes: '',
-    passportPhoto: null,
-    paymentProof: null,
-  })
+  const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [uploadFile,setUploadFile] = useState({passportPhoto: null, paymentReceipt: null});
 
   const days = useMemo(() => Array.from({ length: 31 }, (_, idx) => String(idx + 1).padStart(2, '0')), [])
   const months = useMemo(
@@ -89,9 +120,83 @@ export default function MembershipForm() {
     return Array.from({ length: 80 }, (_, idx) => String(currentYear - idx))
   }, [])
 
+  // Check if membership type requires DOB, Qualification, Passport Photo
+  const requiresPersonalDetails = useMemo(() => {
+    return selectedType.id === 'individual' || selectedType.id === 'individual_foreign'
+  }, [selectedType])
+
+  // Check if institutional member (requires representatives)
+  const isInstitutional = useMemo(() => {
+    return selectedType.id === 'institutional' || selectedType.id === 'institutional_foreign'
+  }, [selectedType])
+
+  
+  function validateBeforeUpload(uploadFile) {
+    if (uploadFile.passportPhoto) {
+      const r = validateFile(uploadFile.passportPhoto, {
+        maxSize: MAX_PHOTO_SIZE,
+        allowedTypes: PHOTO_TYPES
+      });
+      if (!r.valid) return r;
+    }
+  
+    if (uploadFile.paymentReceipt) {
+      const r = validateFile(uploadFile.paymentReceipt, {
+        maxSize: MAX_RECEIPT_SIZE,
+        allowedTypes: RECEIPT_TYPES
+      });
+      if (!r.valid) return r;
+    }
+  
+    return { valid: true };
+  }
+  
+
+
+  //Load draft using uuid
+  useEffect(() => {
+    fetch(`http://localhost:3000/forms/${uuid}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Invalid or expired link");
+        return res.json();
+      })
+      .then(form => {
+        if(!EDITABLE_STATES.includes(form.status)){
+          setIsSubmitted(true);
+        }
+        // Merge loaded data with defaults to ensure all default values are preserved
+        const loadedData = { ...DEFAULT_FORM_DATA, ...(form.data || {}) };
+        setFormData(loadedData);
+        
+        // Restore citizenship and membership type from loaded data
+        if (loadedData.citizenship) {
+          setCitizenship(loadedData.citizenship);
+        }
+        if (loadedData.membershipType && loadedData.membershipType.id) {
+          setSelectedType(loadedData.membershipType);
+        }
+        
+        setStep(form.current_step || 1);
+        setIsInitialLoad(false);
+      })
+      .catch(() => {
+        // If form doesn't exist, still mark as loaded so auto-save can work
+        setIsInitialLoad(false);
+        // navigate("/invalid-link");
+      });
+  }, [uuid]);
+
+
   const handleCitizenshipChange = (type) => {
     setCitizenship(type)
-    setSelectedType(CITIZENSHIP_TYPES[type].membershipTypes[0])
+    const newType = CITIZENSHIP_TYPES[type].membershipTypes[0]
+    setSelectedType(newType)
+    // Save to formData
+    setFormData(prev => ({
+      ...prev,
+      citizenship: type,
+      membershipType: newType
+    }))
   }
 
   const handleInputChange = (e) => {
@@ -101,27 +206,194 @@ export default function MembershipForm() {
 
   const handleFileChange = (e) => {
     const { name, files } = e.target
-    setFormData((prev) => ({ ...prev, [name]: files?.[0] ?? null }))
+    setUploadFile((prev) => ({ ...prev, [name]: files?.[0] ?? null }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setStatusMessage('')
+  const validateStep1 = () => {
+    if (!formData.name.trim()) {
+      alert('Name is required')
+      return false
+    }
+    if (requiresPersonalDetails) {
+      if (!formData.qualification.trim()) {
+        alert('Qualification is required')
+        return false
+      }
+      if (!formData.passportPhoto) {
+        alert('Passport photo is required')
+        return false
+      }
+    }
+    if (!formData.affiliation.trim()) {
+      alert('Current affiliation is required')
+      return false
+    }
+    if (!formData.addressLine1.trim()) {
+      alert('Address is required')
+      return false
+    }
+    if (!formData.city.trim() || !formData.state.trim() || !formData.postalCode.trim()) {
+      alert('City, State, and Postal Code are required')
+      return false
+    }
+    if (!formData.phoneNumber.trim()) {
+      alert('Phone number is required')
+      return false
+    }
+    if (!formData.email.trim()) {
+      alert('Email is required')
+      return false
+    }
+    if (citizenship === 'foreign' && !formData.passportNumber.trim()) {
+      alert('Passport number is required for international members')
+      return false
+    }
+    if (isInstitutional) {
+      if (!formData.representativeOne.trim() || !formData.representativeTwo.trim()) {
+        alert('Both representative names are required for institutional membership')
+        return false
+      }
+    }
+    return true
+  }
 
-    // Simulated API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setStatusMessage('Thanks! Your membership application has been submitted. We will email you updates after verification.')
-      console.log('Submitted membership application:', {
-        ...formData,
-        membershipType: selectedType,
-        citizenship,
+  const uploadFiles = async () => {
+    if(isSubmitted) return;
+
+    if(!uploadFile.passportPhoto && !uploadFile.paymentReceipt) return;
+
+    const check = validateBeforeUpload(uploadFile);
+
+    if (!check.valid) {
+      alert(check.error);
+      return;
+    }
+
+
+    const fd = new FormData();
+
+    if(uploadFile.passportPhoto) fd.append("passportPhoto",uploadFile.passportPhoto);
+    if(uploadFile.paymentReceipt) fd.append("paymentReceipt", uploadFile.paymentReceipt);
+
+    const res = await fetch(`http://localhost:3000/forms/${uuid}/upload`, {
+      method: "POST",
+      body: fd
+    })
+
+    if(res.ok){
+      const data = await res.json();
+
+      if(data.result[0].pp && uploadFile.passportPhoto){
+        setFormData((prev) => ({ ...prev, passportPhoto: data.result[0].pp }))
+        setUploadFile({passportPhoto: null, paymentReceipt: null});
+        alert("passportPhoto upload Success")
+      }
+
+      if(data.result[0].receipt && uploadFile.paymentReceipt){
+        setFormData((prev) => ({ ...prev, paymentReceipt: data.result[0].receipt }))
+        setUploadFile({passportPhoto: null, paymentReceipt: null});
+        alert("paymentReceipt upload Success")
+      }
+    }else{
+      alert("upload failed")
+    }
+  }
+
+
+
+
+
+  const saveDraft = async (formData, step, emailValue) => {
+    if(isSubmitted) return;
+    await fetch(`http://localhost:3000/forms/${uuid}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: formData,
+        currentStep: step,
+        email: emailValue
       })
-    }, 1200)
+    });
+  };
+
+  useEffect(() => {
+    if (isInitialLoad) return;
+  
+    const timeout = setTimeout(() => {
+      (async () => {
+        try {
+          await saveDraft(formData, step, formData.email || null);
+        } catch (e) {
+          console.error("Autosave failed");
+        }
+      })();
+    }, 2000);
+  
+    return () => clearTimeout(timeout);
+  }, [formData, step, isInitialLoad]);
+  
+
+  //FOR FILE DRAFT
+  // useEffect(() => {
+  //   if (isInitialLoad) return;
+
+  //   uploadFiles();
+  // },[uploadFile, isInitialLoad]);
+
+  useEffect(() => {
+    if (isInitialLoad) return;
+    if (!uploadFile) return;
+  
+    (async () => {
+      try {
+        await uploadFiles();
+      } catch (e) {
+        console.error("Upload failed", e);
+      }
+    })();
+  }, [uploadFile, isInitialLoad]);
+  
+  
+  
+  
+  const handleProceedToPayment = async (e) => {
+    e.preventDefault()
+    if (validateStep1()) {
+      setStep(2)
+      // await saveDraft(formData, step, formData.email);
+    }
   }
 
-  const requirementList = CITIZENSHIP_TYPES[citizenship].requirements
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.paymentReference.trim()) {
+      alert('Transaction reference number is required')
+      return
+    }
+    await saveDraft(formData,step,formData.email);
+    try {
+      const res = await fetch(
+        `http://localhost:3000/forms/${uuid}/submit`,
+        { method: "POST" }
+      );
+  
+      if (!res.ok) throw new Error();
+  
+      setIsSubmitted(true);
+      setStatusMessage('Your Form has been Submmited')
+    } catch {
+      alert("Submission failed");
+    }
+  };
+
+  useEffect(() => {
+    if (isSubmitted) {
+      console.log("Form was submitted");
+      // side effects here
+    }
+  }, [isSubmitted]);
+    
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-white py-10">
@@ -137,51 +409,85 @@ export default function MembershipForm() {
         </header>
 
         <div className="rounded-3xl bg-white p-6 shadow-2xl sm:p-10">
-          <div className="mb-8 border-b border-gray-100 pb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Membership Form</h1>
-            <p className="mt-2 text-gray-600">
-              Complete the fields based on your membership type. Fields marked in red are mandatory.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              {Object.entries(CITIZENSHIP_TYPES).map(([key, value]) => (
-                <button
-                  key={key}
-                  onClick={() => handleCitizenshipChange(key)}
-                  className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
-                    citizenship === key ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {value.label}
-                </button>
-              ))}
+          {/* Progress Indicator */}
+          <div className="mb-8">
+            <div className="flex items-center justify-center">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-full ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                <span className="text-lg font-bold">1</span>
+              </div>
+              <div className={`h-1 w-24 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+              <div className={`flex h-12 w-12 items-center justify-center rounded-full ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                <span className="text-lg font-bold">2</span>
+              </div>
+            </div>
+            <div className="mt-2 flex justify-center gap-24">
+              <span className={`text-sm font-medium ${step >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>Personal Details</span>
+              <span className={`text-sm font-medium ${step >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>Payment Details</span>
             </div>
           </div>
 
-          {/* Membership type cards */}
-          <div className="mb-8 grid gap-4 lg:grid-cols-4">
-            {CITIZENSHIP_TYPES[citizenship].membershipTypes.map((type) => (
-              <button
-                key={type.id}
-                type="button"
-                onClick={() => setSelectedType(type)}
-                className={`rounded-2xl border-2 p-4 text-left transition-shadow ${
-                  selectedType.id === type.id
-                    ? 'border-blue-500 bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-xl'
-                    : 'border-transparent bg-blue-50 text-blue-900 hover:shadow'
-                }`}
-              >
-                <p className="text-sm font-semibold uppercase tracking-wide">
-                  {CITIZENSHIP_TYPES[citizenship].currency} {type.fee.toLocaleString()}
-                </p>
-                <p className="mt-2 text-lg font-bold">{type.title}</p>
-                <p className={`mt-1 text-sm ${selectedType.id === type.id ? 'text-blue-50/80' : 'text-blue-900/70'}`}>{type.description}</p>
-              </button>
-            ))}
+          <div className="mb-8 border-b border-gray-100 pb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Membership Form</h1>
+            <p className="mt-2 text-gray-600">
+              {step === 1
+                ? 'Complete your personal details. Fields marked in red are mandatory.'
+                : 'Review your details and complete payment information.'}
+            </p>
+
+            {step === 1 && (
+              <>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {Object.entries(CITIZENSHIP_TYPES).map(([key, value]) => (
+                    <button
+                      key={key}
+                      disabled = {isSubmitted}
+                      onClick={() => handleCitizenshipChange(key)}
+                      className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
+                        citizenship === key ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {value.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Membership type cards - Only in step 1 */}
+                <div className="mt-8 grid gap-4 lg:grid-cols-4">
+                  {CITIZENSHIP_TYPES[citizenship].membershipTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      type="button"
+                      disabled = {isSubmitted}
+                      onClick={() => {
+                        setSelectedType(type);
+                        // Save to formData
+                        setFormData(prev => ({
+                          ...prev,
+                          membershipType: type
+                        }));
+                      }}
+                      className={`rounded-2xl border-2 p-4 text-left transition-shadow ${
+                        selectedType.id === type.id
+                          ? 'border-blue-500 bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-xl'
+                          : 'border-transparent bg-blue-50 text-blue-900 hover:shadow'
+                      }`}
+                    >
+                      <p className="text-sm font-semibold uppercase tracking-wide">
+                        {CITIZENSHIP_TYPES[citizenship].currency} {type.fee.toLocaleString()}
+                      </p>
+                      <p className="mt-2 text-lg font-bold">{type.title}</p>
+                      <p className={`mt-1 text-sm ${selectedType.id === type.id ? 'text-blue-50/80' : 'text-blue-900/70'}`}>
+                        {type.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="grid gap-10 lg:grid-cols-[2fr,1fr]">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          {step === 1 ? (
+            <form onSubmit={handleProceedToPayment} className="space-y-6">
               {/* Name */}
               <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
                 <label className="text-sm font-semibold text-red-500">Name *</label>
@@ -189,6 +495,7 @@ export default function MembershipForm() {
                   type="text"
                   name="name"
                   value={formData.name}
+                  disabled = {isSubmitted}
                   onChange={handleInputChange}
                   required
                   className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -196,57 +503,64 @@ export default function MembershipForm() {
                 />
               </div>
 
-              {/* Date of Birth */}
-              <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
-                <label className="text-sm font-semibold text-red-500">Date of Birth *</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <select name="dobDay" value={formData.dobDay} onChange={handleInputChange} className="rounded-full border border-gray-200 px-4 py-3">
-                    {days.map((day) => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    name="dobMonth"
-                    value={formData.dobMonth}
-                    onChange={handleInputChange}
-                    className="rounded-full border border-gray-200 px-4 py-3"
-                  >
-                    {months.map((month) => (
-                      <option key={month} value={month}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    name="dobYear"
-                    value={formData.dobYear}
-                    onChange={handleInputChange}
-                    className="rounded-full border border-gray-200 px-4 py-3"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
+              {/* Date of Birth - Only for Individual members */}
+              {requiresPersonalDetails && (
+                <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
+                  <label className="text-sm font-semibold text-red-500">Date of Birth *</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <select name="dobDay" value={formData.dobDay} disabled = {isSubmitted} onChange={handleInputChange} className="rounded-full border border-gray-200 px-4 py-3">
+                      {days.map((day) => (
+                        <option key={day} value={day}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      name="dobMonth"
+                      value={formData.dobMonth}
+                      disabled = {isSubmitted}
+                      onChange={handleInputChange}
+                      className="rounded-full border border-gray-200 px-4 py-3"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      name="dobYear"
+                      value={formData.dobYear}
+                      disabled = {isSubmitted}
+                      onChange={handleInputChange}
+                      className="rounded-full border border-gray-200 px-4 py-3"
+                    >
+                      {years.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Qualification */}
-              <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
-                <label className="text-sm font-semibold text-red-500">Qualifications *</label>
-                <input
-                  type="text"
-                  name="qualification"
-                  value={formData.qualification}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="e.g., Ph.D. in Discrete Mathematics"
-                />
-              </div>
+              {/* Qualification - Only for Individual members */}
+              {requiresPersonalDetails && (
+                <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
+                  <label className="text-sm font-semibold text-red-500">Qualifications *</label>
+                  <input
+                    type="text"
+                    name="qualification"
+                    value={formData.qualification}
+                    disabled = {isSubmitted}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="e.g., Ph.D. in Discrete Mathematics"
+                  />
+                </div>
+              )}
 
               {/* Current affiliation */}
               <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
@@ -256,6 +570,7 @@ export default function MembershipForm() {
                   name="affiliation"
                   value={formData.affiliation}
                   onChange={handleInputChange}
+                  disabled = {isSubmitted}
                   required
                   className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   placeholder="Institution / Organization"
@@ -273,6 +588,7 @@ export default function MembershipForm() {
                     type="text"
                     name="addressLine1"
                     value={formData.addressLine1}
+                    disabled = {isSubmitted}
                     onChange={handleInputChange}
                     required
                     className="w-full rounded-full border border-gray-200 px-4 py-3"
@@ -282,6 +598,7 @@ export default function MembershipForm() {
                     type="text"
                     name="addressLine2"
                     value={formData.addressLine2}
+                    disabled = {isSubmitted}
                     onChange={handleInputChange}
                     className="w-full rounded-full border border-gray-200 px-4 py-3"
                     placeholder="Address line 2 (optional)"
@@ -291,6 +608,7 @@ export default function MembershipForm() {
                       type="text"
                       name="city"
                       value={formData.city}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="rounded-full border border-gray-200 px-4 py-3"
@@ -300,6 +618,7 @@ export default function MembershipForm() {
                       type="text"
                       name="state"
                       value={formData.state}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="rounded-full border border-gray-200 px-4 py-3"
@@ -309,6 +628,7 @@ export default function MembershipForm() {
                       type="text"
                       name="postalCode"
                       value={formData.postalCode}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="rounded-full border border-gray-200 px-4 py-3"
@@ -325,6 +645,7 @@ export default function MembershipForm() {
                   <select
                     name="country"
                     value={formData.country}
+                    disabled = {isSubmitted}
                     onChange={handleInputChange}
                     className="rounded-full border border-gray-200 px-4 py-3"
                   >
@@ -338,6 +659,7 @@ export default function MembershipForm() {
                     <select
                       name="phoneCode"
                       value={formData.phoneCode}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       className="rounded-full border border-gray-200 px-3 py-3"
                     >
@@ -351,6 +673,7 @@ export default function MembershipForm() {
                       type="tel"
                       name="phoneNumber"
                       value={formData.phoneNumber}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="flex-1 rounded-full border border-gray-200 px-4 py-3"
@@ -367,6 +690,7 @@ export default function MembershipForm() {
                   type="email"
                   name="email"
                   value={formData.email}
+                  disabled = {isSubmitted}
                   onChange={handleInputChange}
                   required
                   className="w-full rounded-full border border-gray-200 px-4 py-3"
@@ -382,16 +706,17 @@ export default function MembershipForm() {
                     type="text"
                     name="passportNumber"
                     value={formData.passportNumber}
+                    disabled = {isSubmitted}
                     onChange={handleInputChange}
+                    required
                     className="w-full rounded-full border border-gray-200 px-4 py-3"
-                    required={citizenship === 'foreign'}
                     placeholder="As per passport"
                   />
                 </div>
               )}
 
-              {/* Representatives (institutional) */}
-              {selectedType.id.includes('institutional') && (
+              {/* Representatives (institutional only) */}
+              {isInstitutional && (
                 <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
                   <label className="text-sm font-semibold text-red-500">Representative Names *</label>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -399,6 +724,7 @@ export default function MembershipForm() {
                       type="text"
                       name="representativeOne"
                       value={formData.representativeOne}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="rounded-full border border-gray-200 px-4 py-3"
@@ -408,6 +734,7 @@ export default function MembershipForm() {
                       type="text"
                       name="representativeTwo"
                       value={formData.representativeTwo}
+                      disabled = {isSubmitted}
                       onChange={handleInputChange}
                       required
                       className="rounded-full border border-gray-200 px-4 py-3"
@@ -417,119 +744,296 @@ export default function MembershipForm() {
                 </div>
               )}
 
-              {/* Payment */}
-              <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
-                <label className="text-sm font-semibold text-red-500">Fee & Payment *</label>
-                <div className="grid gap-3 md:grid-cols-[1fr,1fr]">
+              {/* Passport Photo - Only for Individual members */}
+              {requiresPersonalDetails && (
+                <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
+                  <label className="text-sm font-semibold text-red-500">Passport Photo *</label>
                   <input
-                    type="text"
-                    value={`${CITIZENSHIP_TYPES[citizenship].currency} ${selectedType.fee.toLocaleString()}`}
-                    readOnly
-                    className="rounded-full border border-gray-200 bg-gray-50 px-4 py-3 font-semibold text-gray-800"
+                    type="file"
+                    name="passportPhoto"
+                    disabled = {isSubmitted}
+                    accept=".jpg, .jpeg, .png"
+                    onChange={handleFileChange}
+                    required ={!formData.passportPhoto}
+                    className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3 text-sm"
                   />
-                  <input
-                    type="text"
-                    name="paymentReference"
-                    value={formData.paymentReference}
-                    onChange={handleInputChange}
-                    className="rounded-full border border-gray-200 px-4 py-3"
-                    placeholder="Reference / Transaction ID"
-                  />
+                  <p className="col-start-2 text-xs text-gray-500">JPEG, JPG or PNG, max 2MB. </p>
+                  {formData.passportPhoto && (
+                    <a href={`${BACKEND_URL}/membership/${uuid}/passportPhoto`} target="_blank">
+                      View photo
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-3 font-semibold text-white shadow-lg transition hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                {isSubmitted ? "View Payment Details" : "Proceed to Payment"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Review Section - Step 1 Details */}
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                <h2 className="mb-4 text-xl font-bold text-gray-900">Review Your Details</h2>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Membership Information</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-700">Citizenship</dt>
+                        <dd className="text-gray-900">{CITIZENSHIP_TYPES[citizenship].label}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Membership Type</dt>
+                        <dd className="text-gray-900">{selectedType.title}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Membership Fee</dt>
+                        <dd className="text-gray-900 font-semibold">
+                          {CITIZENSHIP_TYPES[citizenship].currency} {selectedType.fee.toLocaleString()}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Personal Information</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-700">Full Name</dt>
+                        <dd className="text-gray-900">{formData.name || '—'}</dd>
+                      </div>
+                      {requiresPersonalDetails && (
+                        <>
+                          <div>
+                            <dt className="font-medium text-gray-700">Date of Birth</dt>
+                            <dd className="text-gray-900">
+                              {formData.dobDay} {formData.dobMonth} {formData.dobYear}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium text-gray-700">Qualification</dt>
+                            <dd className="text-gray-900">{formData.qualification || '—'}</dd>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <dt className="font-medium text-gray-700">Current Affiliation</dt>
+                        <dd className="text-gray-900">{formData.affiliation || '—'}</dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Contact Information</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-700">Email</dt>
+                        <dd className="text-gray-900">{formData.email || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Phone</dt>
+                        <dd className="text-gray-900">
+                          {formData.phoneCode} {formData.phoneNumber || '—'}
+                        </dd>
+                      </div>
+                      {citizenship === 'foreign' && formData.passportNumber && (
+                        <div>
+                          <dt className="font-medium text-gray-700">Passport Number</dt>
+                          <dd className="text-gray-900">{formData.passportNumber}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Address</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-700">Address</dt>
+                        <dd className="text-gray-900">
+                          {formData.addressLine1 || '—'}
+                          {formData.addressLine2 && <>, {formData.addressLine2}</>}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">City, State, Postal Code</dt>
+                        <dd className="text-gray-900">
+                          {formData.city || '—'}, {formData.state || '—'} - {formData.postalCode || '—'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Country</dt>
+                        <dd className="text-gray-900">{formData.country || '—'}</dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  {isInstitutional && (
+                    <div>
+                      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Representatives</h3>
+                      <dl className="space-y-2 text-sm">
+                        <div>
+                          <dt className="font-medium text-gray-700">Representative 1</dt>
+                          <dd className="text-gray-900">{formData.representativeOne || '—'}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-gray-700">Representative 2</dt>
+                          <dd className="text-gray-900">{formData.representativeTwo || '—'}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
+
+                  {requiresPersonalDetails && formData.passportPhoto && (
+                    <div>
+                      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Documents</h3>
+                      <p className="text-sm text-gray-900">✓ Passport Photo uploaded</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* File upload */}
-              <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
-                <label className="text-sm font-semibold text-red-500">Passport Photo *</label>
-                <input
-                  type="file"
-                  name="passportPhoto"
-                  accept=".jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3"
-                  required
-                />
-                <p className="col-span-full text-xs text-gray-500 sm:col-start-2">JPEG/PNG, max 2MB</p>
+              {/* Payment Information Section */}
+              <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
+                <h2 className="mb-6 text-2xl font-bold text-gray-900">Payment Information</h2>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Bank Details */}
+                  <div className="rounded-xl bg-white p-6 shadow-sm">
+                    <h3 className="mb-4 text-lg font-semibold text-gray-900">Bank Transfer Details</h3>
+                    <dl className="space-y-3 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-700">Account Name</dt>
+                        <dd className="mt-1 text-gray-900">{BANK_DETAILS.accountName}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Account Number</dt>
+                        <dd className="mt-1 font-mono text-gray-900">{BANK_DETAILS.accountNumber}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">IFSC Code</dt>
+                        <dd className="mt-1 font-mono text-gray-900">{BANK_DETAILS.ifscCode}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Bank Name</dt>
+                        <dd className="mt-1 text-gray-900">{BANK_DETAILS.bankName}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-700">Branch</dt>
+                        <dd className="mt-1 text-gray-900">{BANK_DETAILS.branch}</dd>
+                      </div>
+                      {citizenship === 'foreign' && (
+                        <div>
+                          <dt className="font-medium text-gray-700">SWIFT Code</dt>
+                          <dd className="mt-1 font-mono text-gray-900">{BANK_DETAILS.swiftCode}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  {/* UPI Details */}
+                  <div className="rounded-xl bg-white p-6 shadow-sm">
+                    <h3 className="mb-4 text-lg font-semibold text-gray-900">UPI Payment</h3>
+                    <div className="mb-4">
+                      <dt className="mb-2 text-sm font-medium text-gray-700">UPI ID</dt>
+                      <dd className="font-mono text-lg text-gray-900">{BANK_DETAILS.upiId}</dd>
+                    </div>
+                    <div className="mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8">
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500">UPI QR Code</p>
+                        <p className="mt-2 text-xs text-gray-400">(QR code image will be displayed here)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Payment Amount:</strong> {CITIZENSHIP_TYPES[citizenship].currency} {selectedType.fee.toLocaleString()}
+                  </p>
+                  <p className="mt-2 text-xs text-yellow-700">
+                    Please make the payment using any of the above methods and enter the transaction reference below.
+                  </p>
+                </div>
               </div>
 
+              {/* Transaction Reference */}
               <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
-                <label className="text-sm font-semibold text-red-500">
-                  Payment Receipt *
-                  <span className="block text-xs font-normal text-gray-500">Upload payment screenshot or PDF (max 5MB)</span>
-                </label>
+                <label className="text-sm font-semibold text-red-500">Transaction Reference *</label>
                 <input
-                  type="file"
-                  name="paymentProof"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  onChange={handleFileChange}
-                  className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3"
+                  type="text"
+                  name="paymentReference"
+                  value={formData.paymentReference}
+                  disabled = {isSubmitted}
+                  onChange={handleInputChange}
                   required
+                  className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="UPI/IMPS/NEFT/RTGS Transaction ID"
                 />
               </div>
 
-              {/* Notes */}
+              {/* Payment Receipt Upload */}
+              <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
+                <label className="text-sm font-semibold text-gray-700">Payment Receipt (Optional)</label>
+                <div>
+                  <input
+                    type="file"
+                    name="paymentReceipt"
+                    accept=".pdf,.jpeg,.jpg,.png"
+                    onChange={handleFileChange}
+                    disabled = {isSubmitted}
+                    className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3 text-sm"
+                  />
+                  <p className="mt-2 text-xs text-gray-500">PDF, JPEG, or PNG, max 5MB</p>
+                  {formData.paymentReceipt && (
+                    <a href={`${BACKEND_URL}/membership/${uuid}/paymentReceipt`} target="_blank">
+                      View Receipt
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Notes */}
               <div className="grid gap-4 sm:grid-cols-[160px,1fr]">
                 <label className="text-sm font-semibold text-gray-700">Additional Notes (Optional)</label>
                 <textarea
                   name="notes"
-                  rows={3}
+                  rows={4}
                   value={formData.notes}
+                  disabled = {isSubmitted}
                   onChange={handleInputChange}
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3"
-                  placeholder="Anything else we should know?"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Any additional information you'd like to share..."
                 />
               </div>
 
-              <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center justify-between pt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white px-6 py-3 font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+                >
+                  ← Back to Step 1
+                </button>
                 {statusMessage && <p className="text-sm text-green-600">{statusMessage}</p>}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled = {isSubmitted}
                   className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-3 font-semibold text-white shadow-lg transition hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Now'}
+                  {isSubmitted ? 'Submitted' : 'Submit Now'}
                 </button>
               </div>
             </form>
-
-            <aside className="rounded-2xl bg-blue-50 p-6 text-sm text-blue-900">
-              <h2 className="text-lg font-semibold text-blue-900">Membership checklist</h2>
-              <p className="mt-2 text-blue-800">
-                Red items are mandatory inputs from the applicant. Blue items are generated automatically through the approval workflow.
-              </p>
-
-              <div className="mt-4 space-y-2">
-                {requirementList.map((item) => (
-                  <p key={item} className="flex items-center gap-2 text-red-500">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    {item}
-                  </p>
-                ))}
-              </div>
-
-              <div className="mt-6 rounded-2xl bg-white/70 p-4 shadow-sm">
-                <h3 className="text-md font-semibold text-blue-900">Approval Flow</h3>
-                <ol className="mt-3 space-y-2 text-sm text-blue-800">
-                  <li>1. Submit + auto-generate PDF acknowledgement</li>
-                  <li>2. Treasurer validates receipt of payment</li>
-                  <li>3. Secretary reviews and approves membership</li>
-                  <li>4. Membership number is generated automatically</li>
-                  <li>5. Membership ID card + confirmation email sent to applicant</li>
-                </ol>
-              </div>
-
-              <div className="mt-6 rounded-2xl bg-white/70 p-4 shadow-sm">
-                <h3 className="text-md font-semibold text-blue-900">Payment Guidance</h3>
-                <p className="mt-2 text-sm text-blue-800">
-                  Pay via UPI / IMPS / NEFT / RTGS / Payment Gateway and paste the transaction reference above. Our finance team will confirm the payment
-                  before the Secretary approves the membership.
-                </p>
-              </div>
-            </aside>
-          </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
-
