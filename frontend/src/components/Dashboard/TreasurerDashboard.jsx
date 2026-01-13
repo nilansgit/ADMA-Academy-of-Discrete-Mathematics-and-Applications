@@ -30,6 +30,7 @@ function ApplicationCard({ application, onSelect }) {
   const meta = STATUS_META[application.status]
   const submittedDate = application.updated_at || application.Submitted || application.submittedOn;
   const formattedDate = submittedDate ? new Date(submittedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+
   return (
     <button type="button"
       onClick={() => onSelect(application)}
@@ -219,7 +220,6 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
         )}
         
         {!isLoading && (
-
           <div className="mt-6 space-y-6 text-sm">
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Applicant Info</h3>
@@ -314,7 +314,7 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
                   key={action.id}
                   type="button"
                   onClick={() => handleActionClick(action.id)}
-                  disabled={!remark.trim() && action.id === 'reject'}
+                  disabled={(!remark.trim() && action.id === 'reject') || (action.id === 'forward' && application.status !== 'FORWARDED_TO_TREASURER')}
                   className={`w-full rounded-2xl bg-gradient-to-r ${action.style} px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100`}
                 >
                   {action.label}
@@ -342,11 +342,10 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
 }
 
 
-
 export default function TreasurerDashboard() {
   const [filter, setFilter] = useState('FORWARDED_TO_TREASURER')
   const [selected, setSelected] = useState(null)
-  const [remark, setRemark] = useState('')
+  const [remark, setRemark] = useState("")
   const [formsCount, setFormsCount] = useState({});
   const [formsDetail,setFormsDetail] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -413,23 +412,22 @@ export default function TreasurerDashboard() {
   const total = Number(formsCount.pending_verification) +Number(formsCount.rejected) + Number(formsCount.forwarded_to_secretary);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Treasurer Workspace</p>
           <h1 className="mt-2 text-3xl font-bold text-gray-900">Membership Verification Dashboard</h1>
           <p className="mt-2 max-w-3xl text-sm text-gray-600">
-            Review payment evidence, update remarks and move applications through the workflow. Status changes will automatically inform applicants once
-            backend integrations are connected.
+            Review payment evidence, update remarks and move applications through the workflow.
           </p>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Total Applications" value={total} accent="bg-blue-500" />
           <StatCard label="Pending Verification" value={formsCount.pending_verification || 0} accent="bg-yellow-400" />
-          <StatCard label="Forwarded to Secretary" value={formsCount.forwarded_to_secretary || 0} accent="bg-indigo-400" />
-          <StatCard label="Rejected" value={formsCount.rejected || 0} accent="bg-green-500" />
+          <StatCard label="Forwarded to Secretary" value={formsCount.forwarded_to_secretary || 0} accent="bg-green-400" />
+          <StatCard label="Rejected" value={formsCount.rejected || 0} accent="bg-red-500" />
         </section>
 
         <div className="mt-8 flex flex-wrap gap-3 rounded-full bg-white p-1 shadow-sm ring-1 ring-gray-100">
@@ -438,8 +436,8 @@ export default function TreasurerDashboard() {
               key={key}
               type="button"
               onClick={() => {
-                setFilter(key)
-                setSelected(null)
+                setFilter(key);
+                setSelected(null);
               }}
               className={`flex-1 rounded-full px-4 py-2 text-xs font-semibold transition ${
                 filter === key ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow' : 'text-gray-500 hover:text-gray-900'
@@ -462,8 +460,8 @@ export default function TreasurerDashboard() {
                 application={app} 
                 onSelect={async (data) => {
                   setSelected(data);
-                  setRemark('');
                   setLoadingDetails(true);
+                  setRemark("");
                   
                   try {
                     const url = new URL(`http://localhost:3000/treasurer/forms/${data.uuid}`);
@@ -496,6 +494,7 @@ export default function TreasurerDashboard() {
         </section>
       </main>
       <Footer />
+
       {selected ? (
         <DetailPanel 
           application={selected} 
