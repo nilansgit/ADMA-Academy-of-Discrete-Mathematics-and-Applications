@@ -1,33 +1,31 @@
-import {FORM_STATUS} from "../constants/formStatus.js";
+import { FORM_STATUS } from "../constants/formStatus.js";
 import { checkStatus } from "../models/forms.model.js";
 import { fwdToSec, getAllForms, getCounts, getFormDetails, treasurerReject } from "../models/treasurer.model.js";
 
 
-
-
 export const forwardToSecretaryController = async (req, res) => {
-    const { uuid } = req.params;
-  
-    const rows = await checkStatus(uuid);
-  
-    if (rows[0].status !== FORM_STATUS.FORWARDED_TO_TREASURER) {
-      return res.status(400).json({ error: "Invalid state" });
-    }
-  
-    await fwdToSec(uuid);
-  
-    res.json({ success: "forwarded to secretary" });
+  const { uuid } = req.params;
+
+  const rows = await checkStatus(uuid);
+
+  if (rows[0].status !== FORM_STATUS.FORWARDED_TO_TREASURER) {
+    return res.status(400).json({ error: "Invalid state" });
+  }
+
+  await fwdToSec(uuid);
+
+  res.json({ success: "forwarded to secretary" });
 };
 
-export const treasurerRejectController = async(req,res) => {
-    const {uuid}= req.params;
-    const {reason} = req.body;
-    await treasurerReject(uuid,reason);
+export const treasurerRejectController = async (req, res) => {
+  const { uuid } = req.params;
+  const { reason } = req.body;
+  await treasurerReject(uuid, reason);
 
-    res.json({success: "rejected by treasurer"});
+  res.json({ success: "rejected by treasurer" });
 }
 
-export const getFormsCountController = async(req,res) => {
+export const getFormsCountController = async (req, res) => {
   const result = await getCounts();
   res.send(result);
 }
@@ -43,12 +41,11 @@ export const allFormsController = async (req, res) => {
   }
 };
 
-
-export const getFormDetailsController = async (req,res) => {
+export const getFormDetailsController = async (req, res) => {
   try {
-    const {uuid} = req.params;
-    const {status} = req.query;
-    const [rows] = await getFormDetails(uuid,status);
+    const { uuid } = req.params;
+    const { status } = req.query;
+    const [rows] = await getFormDetails(uuid, status);
     res.status(200).json(rows);
   } catch (err) {
     console.error(err);

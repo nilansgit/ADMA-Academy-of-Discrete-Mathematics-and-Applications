@@ -1,127 +1,33 @@
-import { useMemo, useState } from 'react'
-import Navbar from '../LandingPage/Navbar'
-import Footer from '../LandingPage/Footer'
-
-const APPLICATIONS = [
-  {
-    id: 'ADMA-2025-0012',
-    name: 'Dr. Sumit Rao',
-    membershipType: 'Benefactor Life Member',
-    amount: '₹10,000',
-    submittedOn: '04 Jan 2025',
-    forwardedOn: '06 Jan 2025',
-    affiliation: 'NITK Surathkal',
-    phone: '+91 6350652711',
-    email: 'sumit.24cvl503@nitk.edu.in',
-    paymentReference: 'UPI-ADMA-982341',
-    status: 'pending',
-    citizenship: 'Indian',
-    note: 'Payment verified by Treasurer. Awaiting final approval.',
-    documents: {
-      passportPhoto: '/placeholder-photo.png',
-      paymentReceipt: '/dummy-event.pdf',
-    },
-    fullDetails: {
-      dob: '15 March 1985',
-      qualification: 'Ph.D. in Discrete Mathematics',
-      address: '123 Main Street, Surathkal, Karnataka - 575025',
-      country: 'India',
-    },
-  },
-  {
-    id: 'ADMA-2025-0003',
-    name: 'Dr. Maya Roy',
-    membershipType: 'Institutional Member',
-    amount: '₹3,000',
-    submittedOn: '29 Dec 2024',
-    forwardedOn: '02 Jan 2025',
-    affiliation: 'Delhi Public University',
-    phone: '+91 9824517710',
-    email: 'maya.roy@dpu.edu',
-    paymentReference: 'NEFT-98238921',
-    status: 'onHold',
-    citizenship: 'Indian',
-    note: 'Institutional details need verification. Contacted on 05 Jan.',
-    documents: {
-      passportPhoto: '/placeholder-photo.png',
-      paymentReceipt: '/dummy-event.pdf',
-    },
-    fullDetails: {
-      dob: '22 July 1978',
-      qualification: 'M.Sc., Ph.D.',
-      address: '456 University Road, Delhi - 110001',
-      country: 'India',
-      representativeOne: 'Dr. Maya Roy',
-      representativeTwo: 'Dr. Rajesh Kumar',
-    },
-  },
-  {
-    id: 'ADMA-2024-0198',
-    name: 'Prof. Andrew Cole',
-    membershipType: 'Life Member (Individual)',
-    amount: '$200',
-    submittedOn: '13 Nov 2024',
-    forwardedOn: '18 Nov 2024',
-    affiliation: 'University of Glasgow',
-    phone: '+44 7123 888 222',
-    email: 'andrew.cole@glasgow.ac.uk',
-    paymentReference: 'SWIFT-ADMA-44221',
-    status: 'approved',
-    citizenship: 'International',
-    membershipNumber: 'ADMA-LM-5521',
-    note: 'Membership approved and card generated on 20 Nov 2024',
-    documents: {
-      passportPhoto: '/placeholder-photo.png',
-      paymentReceipt: '/dummy-event.pdf',
-    },
-    fullDetails: {
-      dob: '10 September 1975',
-      qualification: 'Ph.D. in Combinatorics',
-      address: '123 University Avenue, Glasgow, Scotland, UK - G12 8QQ',
-      country: 'United Kingdom',
-      passportNumber: 'UK123456789',
-    },
-  },
-  {
-    id: 'ADMA-2025-0045',
-    name: 'Dr. Priya Sharma',
-    membershipType: 'Patron Life Member',
-    amount: '₹15,000',
-    submittedOn: '20 Jan 2025',
-    forwardedOn: '22 Jan 2025',
-    affiliation: 'IIT Bombay',
-    phone: '+91 9876543210',
-    email: 'priya.sharma@iitb.ac.in',
-    paymentReference: 'UPI-ADMA-991122',
-    status: 'pending',
-    citizenship: 'Indian',
-    note: 'All details verified. Ready for approval.',
-    documents: {
-      passportPhoto: '/placeholder-photo.png',
-      paymentReceipt: '/dummy-event.pdf',
-    },
-    fullDetails: {
-      dob: '05 May 1980',
-      qualification: 'Ph.D. in Graph Theory',
-      address: '789 IIT Campus, Powai, Mumbai - 400076',
-      country: 'India',
-    },
-  },
-]
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../LandingPage/Navbar";
+import Footer from "../LandingPage/Footer";
 
 const STATUS_META = {
-  all: { label: 'All', badge: 'bg-gray-100 text-gray-700' },
-  pending: { label: 'Pending Review', badge: 'bg-yellow-100 text-yellow-800' },
-  onHold: { label: 'On Hold', badge: 'bg-orange-100 text-orange-800' },
-  approved: { label: 'Approved', badge: 'bg-green-100 text-green-800' },
-  returned: { label: 'Returned for Edit', badge: 'bg-red-100 text-red-800' },
-}
+  all: { label: "All", badge: "bg-gray-100 text-gray-700" },
+  FORWARDED_TO_SECRETARY: {
+    label: "Pending Review",
+    badge: "bg-yellow-100 text-yellow-800",
+  },
+  APPROVED: { label: "Approved", badge: "bg-green-100 text-green-800" },
+  SECRETARY_REJECTED: {
+    label: "Returned / Rejected",
+    badge: "bg-red-100 text-red-800",
+  },
+};
 
 const ACTIONS = [
-  { id: 'approve', label: 'Confirm Details & Generate Membership', style: 'from-green-500 to-green-600' },
-  { id: 'hold', label: 'Put on Hold', style: 'from-orange-500 to-orange-600' },
-  { id: 'return', label: 'Return for Edit', style: 'from-rose-500 to-rose-600' },
-]
+  {
+    id: "approve",
+    label: "Confirm Details & Generate Membership",
+    style: "from-green-500 to-green-600",
+  },
+  {
+    id: "reject",
+    label: "Return to Applicant",
+    style: "from-rose-500 to-rose-600",
+  },
+];
 
 function StatCard({ label, value, accent }) {
   return (
@@ -130,290 +36,648 @@ function StatCard({ label, value, accent }) {
       <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
       <div className={`mt-4 h-1 rounded-full ${accent}`} />
     </div>
-  )
+  );
 }
 
 function ApplicationCard({ application, onClick }) {
-  const statusMeta = STATUS_META[application.status] || STATUS_META.pending
+  const statusMeta = STATUS_META[application.status] || STATUS_META.pending;
+  const submittedDate =
+    application.updated_at || application.Submitted || application.submittedOn;
+  const formattedDate = submittedDate
+    ? new Date(submittedDate).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "N/A";
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="w-full rounded-2xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-blue-400 hover:shadow-md"
+      onClick={() => onClick(application)}
+      className="w-full rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900">{application.name}</h3>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badge}`}>
-              {statusMeta.label}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-gray-600">{application.membershipType}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
-            <span>ID: {application.id}</span>
-            <span>Amount: {application.amount}</span>
-            <span>Forwarded: {application.forwardedOn}</span>
-            <span>{application.citizenship}</span>
-          </div>
-          {application.membershipNumber && (
-            <p className="mt-2 text-sm font-semibold text-green-600">
-              Membership #: {application.membershipNumber}
-            </p>
-          )}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            {application.name}
+          </p>
+          <p className="text-xs text-gray-500">{application.membershipType}</p>
         </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.badge}`}
+        >
+          {statusMeta.label}
+        </span>
       </div>
-      {application.note && (
-        <p className="mt-3 text-sm text-gray-600 italic">Note: {application.note}</p>
-      )}
+      <div className="mt-4 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+        <p>
+          <span className="font-medium text-gray-800">Forwarded:</span>{" "}
+          {formattedDate}
+        </p>
+        <p>
+          <span className="font-medium text-gray-800">Amount:</span>{" "}
+          {application.Amount}
+        </p>
+        <p>
+          <span className="font-medium text-gray-800">Reference:</span>{" "}
+          {application.paymentReference}
+        </p>
+        <p>
+          <span className="font-medium text-gray-800">Affiliation:</span>{" "}
+          {application.affiliation}
+        </p>
+      </div>
+      <p className="mt-4 text-xs text-gray-500">{application.note}</p>
     </button>
-  )
+  );
 }
 
-function DetailPanel({ application, onClose, onAction }) {
-  const [remark, setRemark] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  if (!application) return null
-
-  const handleAction = async (actionId) => {
-    if (actionId === 'hold' || actionId === 'return') {
-      if (!remark.trim()) {
-        alert('Please enter a remark explaining the reason.')
-        return
-      }
-    }
-
-    setIsProcessing(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsProcessing(false)
-      onAction(actionId, remark)
-      alert(`Action "${ACTIONS.find((a) => a.id === actionId)?.label}" completed. ${actionId === 'approve' ? 'Membership card will be emailed to the applicant.' : 'Applicant will be notified.'}`)
-      onClose()
-    }, 1000)
-  }
+function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText,
+  confirmStyle,
+}) {
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="relative h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
-        <button
-          onClick={onClose}
-          className="absolute right-6 top-6 z-10 rounded-full bg-gray-100 p-2 text-gray-600 hover:bg-gray-200"
-          aria-label="Close"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        <div className="p-8">
-          <h2 className="text-2xl font-bold text-gray-900">Application Details</h2>
-          <p className="mt-1 text-sm text-gray-600">Application ID: {application.id}</p>
-
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
-              <dl className="mt-4 space-y-2 text-sm">
-                <div>
-                  <dt className="font-medium text-gray-700">Full Name</dt>
-                  <dd className="text-gray-600">{application.name}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Date of Birth</dt>
-                  <dd className="text-gray-600">{application.fullDetails.dob}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Qualification</dt>
-                  <dd className="text-gray-600">{application.fullDetails.qualification}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Current Affiliation</dt>
-                  <dd className="text-gray-600">{application.affiliation}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Citizenship</dt>
-                  <dd className="text-gray-600">{application.citizenship}</dd>
-                </div>
-                {application.fullDetails.passportNumber && (
-                  <div>
-                    <dt className="font-medium text-gray-700">Passport Number</dt>
-                    <dd className="text-gray-600">{application.fullDetails.passportNumber}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
-              <dl className="mt-4 space-y-2 text-sm">
-                <div>
-                  <dt className="font-medium text-gray-700">Email</dt>
-                  <dd className="text-gray-600">{application.email}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Phone</dt>
-                  <dd className="text-gray-600">{application.phone}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Address</dt>
-                  <dd className="text-gray-600">{application.fullDetails.address}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Country</dt>
-                  <dd className="text-gray-600">{application.fullDetails.country}</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-
-          {application.fullDetails.representativeOne && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900">Institutional Representatives</h3>
-              <dl className="mt-4 space-y-2 text-sm">
-                <div>
-                  <dt className="font-medium text-gray-700">Representative 1</dt>
-                  <dd className="text-gray-600">{application.fullDetails.representativeOne}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-gray-700">Representative 2</dt>
-                  <dd className="text-gray-600">{application.fullDetails.representativeTwo}</dd>
-                </div>
-              </dl>
-            </div>
-          )}
-
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900">Membership & Payment</h3>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div>
-                <dt className="font-medium text-gray-700">Membership Type</dt>
-                <dd className="text-gray-600">{application.membershipType}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-700">Amount</dt>
-                <dd className="text-gray-600">{application.amount}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-700">Payment Reference</dt>
-                <dd className="text-gray-600">{application.paymentReference}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-700">Submitted On</dt>
-                <dd className="text-gray-600">{application.submittedOn}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-700">Forwarded On</dt>
-                <dd className="text-gray-600">{application.forwardedOn}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-            <div className="mt-4 flex gap-4">
-              <a
-                href={application.documents.passportPhoto}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-              >
-                View Passport Photo
-              </a>
-              <a
-                href={application.documents.paymentReceipt}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-              >
-                View Payment Receipt
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-8 border-t border-gray-200 pt-6">
-            <label className="block text-sm font-semibold text-gray-900">
-              Remarks / Notes
-              <span className="ml-2 text-xs font-normal text-gray-500">
-                (Required for "Put on Hold" or "Return for Edit")
-              </span>
-            </label>
-            <textarea
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-              rows={4}
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              placeholder="Enter remarks or reason for action..."
-            />
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            {ACTIONS.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => handleAction(action.id)}
-                disabled={isProcessing}
-                className={`rounded-xl bg-gradient-to-r ${action.style} px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50`}
-              >
-                {isProcessing ? 'Processing...' : action.label}
-              </button>
-            ))}
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <p className="mt-2 text-sm text-gray-600">{message}</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 ${confirmStyle}`}
+          >
+            {confirmText}
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+function DetailPanel({
+  application,
+  remark,
+  setRemark,
+  onClose,
+  isLoading,
+  onActionComplete,
+}) {
+  const navigate = useNavigate();
+  const [remarkError, setRemarkError] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  if (!application) return null;
+
+  // Parse the data field
+  let applicationData = null;
+  try {
+    applicationData =
+      typeof application.data === "string"
+        ? JSON.parse(application.data)
+        : application.data;
+  } catch (e) {
+    console.error("Failed to parse form data:", e);
+    applicationData = application.data || {};
+  }
+
+  const handleAction = async (actionId) => {
+    if (actionId === "reject") {
+      // Check if remark is filled
+      if (!remark.trim()) {
+        setRemarkError(
+          "Treasurer remark is required before returning to applicant"
+        );
+        return;
+      }
+      setRemarkError("");
+      // Show confirmation for reject
+      setPendingAction(actionId);
+      setShowConfirmModal(true);
+    } else if (actionId === "approve") {
+      // Show confirmation for approve
+      setPendingAction(actionId);
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+
+    try {
+      const url = new URL(
+        `http://localhost:3000/secretary/${application.uuid}/${pendingAction}`
+      );
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+          authorization: window.localStorage.getItem("token"),
+        },
+        body: JSON.stringify({ reason: remark }),
+      });
+
+      if (!response.ok) throw new Error("Action failed");
+
+      // Close modal and detail panel
+      setShowConfirmModal(false);
+      setPendingAction(null);
+      onClose(); // Close the detail panel
+
+      // Refresh data before redirecting
+      if (onActionComplete) {
+        onActionComplete();
+      }
+
+      // Small delay to ensure data refresh starts, then redirect
+      setTimeout(() => {
+        navigate("/dashboard/secretary", { replace: true });
+      }, 100);
+    } catch (err) {
+      console.error("Failed to process action:", err);
+      alert("Failed to process the action. Please try again.");
+      setShowConfirmModal(false);
+      setPendingAction(null);
+
+      if (onActionComplete) {
+        onActionComplete();
+      }
+      onClose(); // Close the detail panel
+      setTimeout(() => {
+        navigate("/dashboard/secretary", { replace: true });
+      }, 100);
+    }
+  };
+
+  const getConfirmModalProps = () => {
+    if (pendingAction === "approve") {
+      return {
+        title: "Confirm Membership of the Applicant",
+        message: `This action will approve the membership of the applicant & generate their membership card.`,
+        confirmText: "Yes, Approve",
+        confirmStyle: "bg-gradient-to-r from-blue-500 to-blue-600",
+      };
+    } else if (pendingAction === "reject") {
+      return {
+        title: "Confirm Return to Applicant",
+        message: `Are you sure you want to return this application to the applicant? The following remark will be sent: "${remark}"`,
+        confirmText: "Yes, Return",
+        confirmStyle: "bg-gradient-to-r from-rose-500 to-rose-600",
+      };
+    }
+    return null;
+  };
+
+  const formData = application?.data || {};
+
+  const InfoSection = ({ title, children, className = "" }) => (
+    <div
+      className={`rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-gray-50/50 p-6 ${className}`}
+    >
+      <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+        {title}
+      </h3>
+      <dl className="mt-4 space-y-3">{children}</dl>
+    </div>
+  );
+
+  const InfoItem = ({ label, value }) => (
+    <div className="flex justify-between gap-7 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+      <dt className="text-sm font-medium text-gray-600 flex-shrink-0">
+        {label}
+      </dt>
+      <dd className="text-sm text-gray-900 font-medium text-right flex-1">
+        {value || "N/A"}
+      </dd>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="relative h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl scrollbar-thin">
+        <button
+          onClick={onClose}
+          className="absolute right-6 top-6 z-10 rounded-full bg-gray-100 p-2 text-gray-600 hover:bg-gray-200 transition hover:scale-110"
+          aria-label="Close"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
+        {isLoading && (
+          <div className="mt-6 flex items-center justify-center py-12">
+            <div className="text-sm text-gray-500">
+              Loading application details...
+            </div>
+          </div>
+        )}
+
+        {!isLoading && (
+          <div className="p-8">
+            {/* Header */}
+            <div className="flex items-start gap-4 pb-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Application Details
+                </h2>
+                <p className="mt-2 text-sm text-gray-500">
+                  ID:{" "}
+                  <span className="font-semibold text-gray-700">
+                    {application.uuid || application.id}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Personal & Contact Info Grid */}
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <InfoSection title="Personal Information">
+                <InfoItem label="Full Name" value={formData.name} />
+                <InfoItem
+                  label="Date of Birth"
+                  value={
+                    formData.dobDay
+                      ? `${formData.dobDay} ${formData.dobMonth} ${formData.dobYear}`
+                      : undefined
+                  }
+                />
+                <InfoItem
+                  label="Qualification"
+                  value={formData.qualification}
+                />
+                <InfoItem label="Affiliation" value={formData.affiliation} />
+                <InfoItem label="Citizenship" value={formData.citizenship} />
+                {formData.passportNumber && (
+                  <InfoItem
+                    label="Passport Number"
+                    value={formData.passportNumber}
+                  />
+                )}
+              </InfoSection>
+
+              <InfoSection title="Contact Information">
+                <InfoItem
+                  label="Email"
+                  value={application.email || formData.email}
+                />
+                <InfoItem
+                  label="Phone"
+                  value={`${formData.phoneCode} ${formData.phoneNumber}`}
+                />
+                <InfoItem
+                  label="Address"
+                  value={`${formData.addressLine1}, ${formData.addressLine2}, ${formData.city}, ${formData.state} - ${formData.postalCode}`}
+                />
+                <InfoItem label="Country" value={formData.country} />
+              </InfoSection>
+            </div>
+
+            {/* Institutional Representatives */}
+            {(formData.representativeOne || formData.representativeTwo) && (
+              <div className="mt-6">
+                <InfoSection title="Institutional Representatives">
+                  {formData.representativeOne && (
+                    <InfoItem
+                      label="Representative 1"
+                      value={formData.representativeOne}
+                    />
+                  )}
+                  {formData.representativeTwo && (
+                    <InfoItem
+                      label="Representative 2"
+                      value={formData.representativeTwo}
+                    />
+                  )}
+                </InfoSection>
+              </div>
+            )}
+
+            {/* Membership & Payment */}
+            <div className="mt-6">
+              <InfoSection title="Membership & Payment">
+                <InfoItem
+                  label="Membership Type"
+                  value={formData.membershipType?.title}
+                />
+                <InfoItem
+                  label="Amount"
+                  value={`₹${formData.membershipType?.fee || "0"}`}
+                />
+                <InfoItem
+                  label="Payment Reference"
+                  value={formData.paymentReference}
+                />
+                <InfoItem
+                  label="Created On"
+                  value={
+                    application.created_at
+                      ? new Date(application.created_at).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )
+                      : undefined
+                  }
+                />
+                <InfoItem
+                  label="Forwarded On"
+                  value={
+                    application.updated_at
+                      ? new Date(application.updated_at).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )
+                      : undefined
+                  }
+                />
+              </InfoSection>
+            </div>
+
+            {/* Documents */}
+            {(formData.passportPhoto || formData.paymentReceipt) && (
+              <div className="mt-6">
+                <InfoSection title="Documents">
+                  <div className="pt-2 flex gap-3 flex-wrap">
+                    {formData.passportPhoto && (
+                      <a
+                        href={`http://localhost:3000/${formData.passportPhoto}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition border border-blue-200"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Passport Photo
+                      </a>
+                    )}
+                    {formData.paymentReceipt && (
+                      <a
+                        href={`http://localhost:3000/${formData.paymentReceipt}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition border border-green-200"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Payment Receipt
+                      </a>
+                    )}
+                  </div>
+                </InfoSection>
+              </div>
+            )}
+
+            {/* Remarks Section */}
+            <div className="mt-8 rounded-2xl border border-gray-200 bg-gradient-to-br from-amber-50/50 to-white p-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-3">
+                Remarks / Notes
+                <span className="ml-2 text-xs font-normal text-gray-500">
+                  (Required for returning to applicant)
+                </span>
+              </label>
+              <textarea
+                value={remark}
+                onChange={(e) => {
+                  setRemark(e.target.value);
+                  if (remarkError && e.target.value.trim()) {
+                    setRemarkError("");
+                  }
+                }}
+                rows={4}
+                placeholder="Enter remarks or reason for your action..."
+                className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
+                  remarkError
+                    ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                    : "border-gray-200 focus:border-blue-500 focus:ring-blue-200"
+                }`}
+              />
+              {remarkError && (
+                <p className="mt-2 text-xs text-red-600">{remarkError}</p>
+              )}
+              <p className="mt-2 text-xs text-gray-500">
+                Required for all actions. This remark will be visible to the
+                applicant.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 flex flex-wrap gap-3 pb-2">
+              {ACTIONS.map((action) => (
+                <button
+                  key={action.id}
+                  onClick={() => handleAction(action.id)}
+                  disabled={
+                    (action.id === "reject" &&
+                      (!remark.trim() ||
+                        application.status !== "FORWARDED_TO_SECRETARY")) ||
+                    (action.id === "approve" &&
+                      application.status !== "FORWARDED_TO_SECRETARY")
+                  }
+                  className={`rounded-xl bg-gradient-to-r ${action.style} px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100`}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setPendingAction(null);
+        }}
+        onConfirm={handleConfirmAction}
+        {...getConfirmModalProps()}
+      />
+    </div>
+  );
 }
 
 export default function SecretaryDashboard() {
-  const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedApplication, setSelectedApplication] = useState(null)
+  const [selectedStatus, setSelectedStatus] = useState(
+    "FORWARDED_TO_SECRETARY"
+  );
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [remark, setRemark] = useState("");
+  const [formsCount, setFormsCount] = useState({});
+  const [formsDetail, setFormsDetail] = useState([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   const filteredApplications = useMemo(() => {
-    if (selectedStatus === 'all') return APPLICATIONS
-    return APPLICATIONS.filter((app) => app.status === selectedStatus)
-  }, [selectedStatus])
+    if (selectedStatus === "all") return formsDetail;
+    return formsDetail.filter((app) => app.status === selectedStatus);
+  }, [selectedStatus, formsDetail]);
 
-  const stats = useMemo(() => {
-    return {
-      total: APPLICATIONS.length,
-      pending: APPLICATIONS.filter((a) => a.status === 'pending').length,
-      onHold: APPLICATIONS.filter((a) => a.status === 'onHold').length,
-      approved: APPLICATIONS.filter((a) => a.status === 'approved').length,
-    }
-  }, [])
+  const Status = ["FORWARDED_TO_SECRETARY", "APPROVED", "SECRETARY_REJECTED"];
 
-  const handleAction = (actionId, remark) => {
-    console.log('Secretary action:', { actionId, remark, applicationId: selectedApplication?.id })
-    // TODO: API call to update application status
-  }
+  // Fetch forms detail
+  const fetchFormsDetail = async () => {
+    const url = new URL("http://localhost:3000/secretary/forms");
+    Status.forEach((status) => {
+      url.searchParams.append("status", status);
+    });
+    fetch(url, {
+      headers: { authorization: window.localStorage.getItem("token") },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Invalid or expired link");
+        return res.json();
+      })
+      .then((data) => {
+        setFormsDetail(data);
+      })
+      .catch((err) => {
+        console.error("fetch failed", err);
+      });
+  };
+
+  // Function to fetch forms count
+  const fetchFormsCount = () => {
+    fetch("http://localhost:3000/secretary/formsCount", {
+      headers: { authorization: window.localStorage.getItem("token") },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Invalid or expired link");
+        return res.json();
+      })
+      .then((data) => {
+        setFormsCount(data[0]);
+      })
+      .catch((err) => {
+        console.error("fetch failed", err);
+      });
+  };
+
+  // To get details of all forms
+  useEffect(() => {
+    fetchFormsDetail();
+  }, []);
+
+  // to get summary of forms count
+  useEffect(() => {
+    fetchFormsCount();
+  }, []);
+
+  // Total no. of forms
+  const total =
+    Number(formsCount.pending) +
+    Number(formsCount.approved) +
+    Number(formsCount.rejected);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Secretary Dashboard</h1>
-          <p className="mt-2 text-gray-600">Review and approve membership applications forwarded by Treasurer</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+            Secretary Workspace
+          </p>
+          <h1 className="mt-2 text-3xl font-bold text-gray-900">
+            Membership Approval Dashboard
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Review and approve membership applications forwarded by Treasurer
+          </p>
         </header>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Applications" value={stats.total} accent="bg-blue-500" />
-          <StatCard label="Pending Review" value={stats.pending} accent="bg-yellow-500" />
-          <StatCard label="On Hold" value={stats.onHold} accent="bg-orange-500" />
-          <StatCard label="Approved" value={stats.approved} accent="bg-green-500" />
+          <StatCard
+            label="Total Applications"
+            value={total}
+            accent="bg-blue-500"
+          />
+          <StatCard
+            label="Pending Review"
+            value={formsCount.pending}
+            accent="bg-yellow-500"
+          />
+          <StatCard
+            label="Approved"
+            value={formsCount.approved}
+            accent="bg-green-500"
+          />
+          <StatCard
+            label="Rejected"
+            value={formsCount.rejected}
+            accent="bg-red-500"
+          />
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mt-8 flex flex-wrap gap-3 rounded-full bg-white p-1 shadow-sm ring-1 ring-gray-100">
           {Object.entries(STATUS_META).map(([key, meta]) => (
             <button
               key={key}
-              onClick={() => setSelectedStatus(key)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              type="button"
+              onClick={() => {
+                setSelectedStatus(key);
+                setSelectedApplication(null);
+              }}
+              className={`flex-1 rounded-full px-4 py-2 text-xs font-semibold transition ${
                 selectedStatus === key
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 shadow-sm hover:bg-gray-50'
+                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               {meta.label}
@@ -421,17 +685,53 @@ export default function SecretaryDashboard() {
           ))}
         </div>
 
-        <div className="space-y-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredApplications.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
-              <p className="text-gray-500">No applications found for this status.</p>
+            <div className="col-span-full rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+              No applications found for this status.
             </div>
           ) : (
             filteredApplications.map((application) => (
               <ApplicationCard
                 key={application.id}
                 application={application}
-                onClick={() => setSelectedApplication(application)}
+                onClick={async (data) => {
+                  setSelectedApplication(data);
+                  setLoadingDetails(true);
+                  setRemark("");
+
+                  try {
+                    const url = new URL(
+                      `http://localhost:3000/secretary/forms/${data.uuid}`
+                    );
+                    if (data.status) {
+                      url.searchParams.append("status", data.status);
+                    }
+
+                    const response = await fetch(url, {
+                      headers: {
+                        authorization: window.localStorage.getItem("token"),
+                      },
+                    });
+                    if (!response.ok)
+                      throw new Error("Failed to fetch details");
+
+                    const fullDetails = await response.json();
+                    // getFormDetails returns an array, so get the first element
+                    const details = Array.isArray(fullDetails)
+                      ? fullDetails[0] || data
+                      : fullDetails;
+
+                    if (!details) {
+                      throw new Error("No details found");
+                    }
+                    setSelectedApplication(details);
+                  } catch (err) {
+                    console.error("Failed to fetch application details:", err);
+                  } finally {
+                    setLoadingDetails(false);
+                  }
+                }}
               />
             ))
           )}
@@ -442,11 +742,19 @@ export default function SecretaryDashboard() {
       {selectedApplication && (
         <DetailPanel
           application={selectedApplication}
-          onClose={() => setSelectedApplication(null)}
-          onAction={handleAction}
+          remark={remark}
+          setRemark={setRemark}
+          onClose={() => {
+            setSelectedApplication(null);
+            setLoadingDetails(false);
+          }}
+          isLoading={loadingDetails}
+          onActionComplete={() => {
+            fetchFormsDetail();
+            fetchFormsCount();
+          }}
         />
       )}
     </div>
-  )
+  );
 }
-
