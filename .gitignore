@@ -50,5 +50,5 @@ backend/uploads/**
 !backend/uploads/**/
 !backend/uploads/**/.gitkeep
 
-
-
+# docker compose (local dev)
+backend/docker-compose.yml

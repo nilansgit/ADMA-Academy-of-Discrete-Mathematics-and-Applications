@@ -1,3 +1,5 @@
+import { STRAPI_BASE_URL } from "../../constants";
+
 export default function Footer() {
   return (
     <footer className="w-full bg-gradient-to-br from-blue-600 to-blue-800 text-white">
@@ -8,13 +10,13 @@ export default function Footer() {
             <h3 className="mb-4 text-lg font-bold">Useful Links :</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="hover:underline">Archives</a>
+                <a href="/login" className="hover:underline">Official Login</a>
+              </li>
+              <li>
+                <a href={`${STRAPI_BASE_URL}`} className="hover:underline">Editor's Desk</a>
               </li>
               <li>
                 <a href="#" className="hover:underline">History</a>
-              </li>
-              <li>
-                <a href="/login" className="hover:underline">Official Login</a>
               </li>
               <li>
                 <a href="/membership/apply" className="hover:underline">Join ADMA</a>
