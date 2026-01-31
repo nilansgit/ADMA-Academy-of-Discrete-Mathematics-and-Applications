@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import Navbar from '../LandingPage/Navbar'
-import Footer from '../LandingPage/Footer'
 import { useNavigate } from 'react-router-dom'
+import { clearAuthData } from '../../utils/tokenUtils'
 
 
 const STATUS_META = {
@@ -16,6 +15,8 @@ const ACTIONS = [
   { id: 'reject', label: 'Return to Applicant', style: 'from-rose-500 to-rose-600' },
 ]
 
+const BACKEND_URL  = "http://localhost:3000"
+
 function StatCard({ label, value, accent }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -26,38 +27,81 @@ function StatCard({ label, value, accent }) {
   )
 }
 
-function ApplicationCard({ application, onSelect }) {
-  const meta = STATUS_META[application.status]
-  const submittedDate = application.updated_at || application.Submitted || application.submittedOn;
+function ApplicationRow({ application, onSelect }) {
+  const submittedDate = application.updated_at || application.created_at || application.Submitted || application.submittedOn;
   const formattedDate = submittedDate ? new Date(submittedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
 
+  // Get currency and amount from application data
+  const getFormattedAmount = () => {
+    if (application.Amount) {
+      // If Amount already includes currency, return as is
+      if (typeof application.Amount === 'string' && (application.Amount.includes('₹') || application.Amount.includes('$') || application.Amount.includes('USD') || application.Amount.includes('INR'))) {
+        return application.Amount;
+      }
+    }
+    
+    // Try to parse data to get currency
+    let formData = null;
+    try {
+      formData = typeof application.data === "string" ? JSON.parse(application.data) : application.data;
+    } catch (e) {
+      formData = application.data || {};
+    }
+    
+    // Determine currency based on multiple checks:
+    // 1. Check citizenship field
+    // 2. Check membershipType.id for '_foreign' suffix
+    // 3. Check membershipType.currency
+    let currency = 'INR'; // default
+    
+    if (formData?.citizenship === 'foreign') {
+      currency = 'USD';
+    } else if (formData?.citizenship === 'indian') {
+      currency = 'INR';
+    } else if (formData?.membershipType?.id && formData.membershipType.id.includes('_foreign')) {
+      // Check if membership type ID contains '_foreign' (e.g., 'patron_foreign')
+      currency = 'USD';
+    } else if (formData?.membershipType?.currency) {
+      currency = formData.membershipType.currency;
+    }
+    
+    const fee = formData?.membershipType?.fee || application.Amount || 0;
+    
+    // Map currency codes to symbols
+    const currencySymbol = currency === 'USD' ? '$' : '₹';
+    
+    return `${currencySymbol}${typeof fee === 'number' ? fee.toLocaleString() : fee}`;
+  };
+
+  const formattedAmount = getFormattedAmount();
+
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={() => onSelect(application)}
-      className="w-full rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
+      className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-blue-400 hover:bg-blue-50/30 hover:shadow-sm last:rounded-b-lg"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{application.name}</p>
-          <p className="text-xs text-gray-500">{application.membershipType}</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5 items-center">
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="md:font-normal font-mono text-sm">{application.application_number}</span>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${meta.badge}`}>{meta.label}</span>
+        <div className="md:col-span-1">
+          <p className="text-sm font-semibold text-gray-900">{application.name}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{application.membershipType || 'N/A'}</p>
+        </div>
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800 hidden md:inline">Date: </span>
+          <span className="md:font-normal">{formattedDate}</span>
+        </div>
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800 hidden md:inline">Amount: </span>
+          <span className="md:font-normal">{formattedAmount || 'N/A'}</span>
+        </div>
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800 hidden md:inline">Ref: </span>
+          <span className="md:font-normal">{application.paymentReference || 'N/A'}</span>
+        </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
-        <p>
-          <span className="font-medium text-gray-800">Submitted:</span> {formattedDate}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Amount:</span> {application.Amount}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Reference:</span> {application.paymentReference}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Affiliation:</span> {application.affiliation}
-        </p>
-      </div>
-      <p className="mt-4 text-xs text-gray-500">{application.note}</p>
     </button>
   )
 }
@@ -95,81 +139,83 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
 
 function DetailPanel({ application, remark, setRemark, onClose, isLoading, onActionComplete }) {
   const navigate = useNavigate();
+  const [remarkError, setRemarkError] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-  const [remarkError, setRemarkError] = useState('');
-  
-  if (!application) return null  
-  // Parse the data field if it's a string (JSON)
-  let formData = null;
+
+  if (!application) return null;
+
+  // Parse the data field
+  let applicationData = null;
   try {
-    formData = typeof application.data === 'string' ? JSON.parse(application.data) : application.data;
+    applicationData =
+      typeof application.data === "string"
+        ? JSON.parse(application.data)
+        : application.data;
   } catch (e) {
-    console.error('Failed to parse form data:', e);
-    formData = application.data || {};
+    console.error("Failed to parse form data:", e);
+    applicationData = application.data || {};
   }
-  
-  // Format date
-  const submittedDate = application.updated_at;
-  const formattedDate = submittedDate ? new Date(submittedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
-  
-  const handleActionClick = (actionId) => {
-    if (actionId === 'reject') {
-      // For reject, check if remark is filled
+
+  const handleAction = async (actionId) => {
+    if (actionId === "reject") {
+      // Check if remark is filled
       if (!remark.trim()) {
-        setRemarkError('Treasurer remark is required before returning to applicant');
+        setRemarkError(
+          "Treasurer remark is required before returning to applicant"
+        );
         return;
       }
-      setRemarkError('');
+      setRemarkError("");
       // Show confirmation for reject
       setPendingAction(actionId);
       setShowConfirmModal(true);
-    } else if (actionId === 'forward') {
+    } else if (actionId === "forward") {
       // Show confirmation for forward
       setPendingAction(actionId);
       setShowConfirmModal(true);
     }
   };
-  
+
   const handleConfirmAction = async () => {
     if (!pendingAction) return;
-    
+
     try {
-      const url = new URL(`http://localhost:3000/treasurer/${application.uuid}/${pendingAction}`);
-      
+      const url = new URL(
+        `http://localhost:3000/treasurer/${application.uuid}/${pendingAction}`
+      );
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-type": "application/json",
-          "authorization": window.localStorage.getItem("token")
+          authorization: window.localStorage.getItem("token"),
         },
-        body: JSON.stringify({"reason": remark})
+        body: JSON.stringify({ reason: remark }),
       });
 
-      if (!response.ok) throw new Error('Action failed');
-      
+      if (!response.ok) throw new Error("Action failed");
+
       // Close modal and detail panel
       setShowConfirmModal(false);
       setPendingAction(null);
       onClose(); // Close the detail panel
-      
+
       // Refresh data before redirecting
       if (onActionComplete) {
         onActionComplete();
       }
-      
+
       // Small delay to ensure data refresh starts, then redirect
       setTimeout(() => {
         navigate("/dashboard/treasurer", { replace: true });
       }, 100);
-      
     } catch (err) {
-      console.error('Failed to process action:', err);
-      alert('Failed to process the action. Please try again.');
+      console.error("Failed to process action:", err);
+      alert("Failed to process the action. Please try again.");
       setShowConfirmModal(false);
       setPendingAction(null);
-      
-      // Still refresh and redirect even on error
+
       if (onActionComplete) {
         onActionComplete();
       }
@@ -179,183 +225,404 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
       }, 100);
     }
   };
-  
+
   const getConfirmModalProps = () => {
-    if (pendingAction === 'forward') {
+    if (pendingAction === "forward") {
       return {
-        title: 'Confirm Forward to Secretary',
-        message: 'Have you verified the payment details? Please confirm that payment verification is complete before forwarding to the Secretary.',
-        confirmText: 'Yes, Forward',
-        confirmStyle: 'bg-gradient-to-r from-blue-500 to-blue-600'
+        title: "Confirm Forward to Secretary",
+        message: "Have you verified the payment details? Please confirm that payment verification is complete before forwarding to the Secretary.",
+        confirmText: "Yes, Forward",
+        confirmStyle: "bg-gradient-to-r from-blue-500 to-blue-600",
       };
-    } else if (pendingAction === 'reject') {
+    } else if (pendingAction === "reject") {
       return {
-        title: 'Confirm Return to Applicant',
+        title: "Confirm Return to Applicant",
         message: `Are you sure you want to return this application to the applicant? The following remark will be sent: "${remark}"`,
-        confirmText: 'Yes, Return',
-        confirmStyle: 'bg-gradient-to-r from-rose-500 to-rose-600'
+        confirmText: "Yes, Return",
+        confirmStyle: "bg-gradient-to-r from-rose-500 to-rose-600",
       };
     }
     return null;
   };
-  
+
+  const formData = applicationData || {};
+
+  const InfoSection = ({ title, children, className = "" }) => (
+    <div
+      className={`rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-gray-50/50 p-6 ${className}`}
+    >
+      <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+        {title}
+      </h3>
+      <dl className="mt-4 space-y-3">{children}</dl>
+    </div>
+  );
+
+  const InfoItem = ({ label, value }) => (
+    <div className="flex justify-between gap-7 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+      <dt className="text-sm font-medium text-gray-600 flex-shrink-0">
+        {label}
+      </dt>
+      <dd className="text-sm text-gray-900 font-medium text-right flex-1">
+        {value || "N/A"}
+      </dd>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-end bg-black/30 backdrop-blur-sm">
-      <div className="h-full w-full max-w-2xl overflow-y-auto bg-white px-6 py-6 shadow-2xl sm:px-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Application</p>
-            <h2 className="text-2xl font-bold text-gray-900">{application.uuid || application.id}</h2>
-            <p className="text-sm text-gray-500">Submitted on {formattedDate}</p>
-          </div>
-          <button type="button" onClick={onClose} className="text-sm text-gray-500 hover:text-gray-900">
-            Close ✕
-          </button>
-        </div>
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="relative h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl scrollbar-thin">
+        <button
+          onClick={onClose}
+          className="absolute right-6 top-6 z-10 rounded-full bg-gray-100 p-2 text-gray-600 hover:bg-gray-200 transition hover:scale-110"
+          aria-label="Close"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
         {isLoading && (
           <div className="mt-6 flex items-center justify-center py-12">
-            <div className="text-sm text-gray-500">Loading application details...</div>
+            <div className="text-sm text-gray-500">
+              Loading application details...
+            </div>
           </div>
         )}
-        
+
         {!isLoading && (
-          <div className="mt-6 space-y-6 text-sm">
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Applicant Info</h3>
-              <div className="mt-3 grid gap-4 rounded-2xl border border-gray-100 bg-gray-50/60 p-4 sm:grid-cols-2">
-                <p>
-                  <span className="font-semibold text-gray-800">Name:</span> {formData?.name || application.name || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Citizenship:</span> {formData.citizenship || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Affiliation:</span> {formData.affiliation || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Phone:</span> {formData?.phoneNumber || application.phone || 'N/A'}
-                </p>
-                <p className="sm:col-span-2">
-                  <span className="font-semibold text-gray-800">Email:</span> {application.email || formData?.email || 'N/A'}
+          <div className="p-8">
+            {/* Header */}
+            <div className="flex items-start gap-4 pb-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Application Details
+                </h2>
+                <p className="mt-2 text-sm text-gray-500">
+                  {/* ID:{" "} */}
+                  <span className="font-semibold text-gray-700">
+                    {application.application_number || application.uuid}
+                  </span>
                 </p>
               </div>
-            </section>
+            </div>
 
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Payment Details</h3>
-              <div className="mt-3 grid gap-4 rounded-2xl border border-gray-100 bg-white p-4 sm:grid-cols-2">
-                <p>
-                  <span className="font-semibold text-gray-800">Membership Type:</span> {formData?.membershipType.title || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Amount:</span> {formData?.membershipType.fee || application.amount || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Transaction Ref:</span> {formData?.paymentReference || application.paymentReference || application.Reference || 'N/A'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-800">Status:</span> {STATUS_META[application.status]?.label || 'N/A'}
-                </p>
-                <div className="sm:col-span-2">
-                  <span className="font-semibold text-gray-800">Payment Receipt:</span>
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {formData?.paymentReceipt && (
+            {/* Personal & Contact Info Grid */}
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <InfoSection title="Personal Information">
+                <InfoItem label="Full Name" value={formData.name} />
+                <InfoItem
+                  label="Date of Birth"
+                  value={
+                    formData.dobDay
+                      ? `${formData.dobDay} ${formData.dobMonth} ${formData.dobYear}`
+                      : undefined
+                  }
+                />
+                <InfoItem
+                  label="Qualification"
+                  value={formData.qualification}
+                />
+                <InfoItem label="Affiliation" value={formData.affiliation} />
+                <InfoItem label="Citizenship" value={formData.citizenship} />
+                {formData.passportNumber && (
+                  <InfoItem
+                    label="Passport Number"
+                    value={formData.passportNumber}
+                  />
+                )}
+              </InfoSection>
+
+              <InfoSection title="Contact Information">
+                <InfoItem
+                  label="Email"
+                  value={application.email || formData.email}
+                />
+                <InfoItem
+                  label="Phone"
+                  value={`${formData.phoneCode || ''} ${formData.phoneNumber || ''}`}
+                />
+                <InfoItem
+                  label="Address"
+                  value={`${formData.addressLine1 || ''}, ${formData.addressLine2 || ''}, ${formData.city || ''}, ${formData.state || ''} - ${formData.postalCode || ''}`}
+                />
+                <InfoItem label="Country" value={formData.country} />
+              </InfoSection>
+            </div>
+
+            {/* Institutional Representatives */}
+            {(formData.representativeOne || formData.representativeTwo) && (
+              <div className="mt-6">
+                <InfoSection title="Institutional Representatives">
+                  {formData.representativeOne && (
+                    <InfoItem
+                      label="Representative 1"
+                      value={formData.representativeOne}
+                    />
+                  )}
+                  {formData.representativeTwo && (
+                    <InfoItem
+                      label="Representative 2"
+                      value={formData.representativeTwo}
+                    />
+                  )}
+                </InfoSection>
+              </div>
+            )}
+
+            {/* Membership & Payment */}
+            <div className="mt-6">
+              <InfoSection title="Membership & Payment">
+                <InfoItem
+                  label="Membership Type"
+                  value={formData.membershipType?.title}
+                />
+                <InfoItem
+                  label="Amount"
+                  value={(() => {
+                    // Determine currency based on multiple checks:
+                    // 1. Check citizenship field
+                    // 2. Check membershipType.id for '_foreign' suffix
+                    // 3. Check membershipType.currency
+                    let currency = 'INR'; // default
+                    if (formData.citizenship === 'foreign') {
+                      currency = 'USD';
+                    } else if (formData.citizenship === 'indian') {
+                      currency = 'INR';
+                    } else if (formData.membershipType?.id && formData.membershipType.id.includes('_foreign')) {
+                      // Check if membership type ID contains '_foreign' (e.g., 'patron_foreign')
+                      currency = 'USD';
+                    } else if (formData.membershipType?.currency) {
+                      currency = formData.membershipType.currency;
+                    }
+                    const symbol = currency === 'USD' ? '$' : '₹';
+                    const fee = formData.membershipType?.fee || 0;
+                    return `${symbol}${typeof fee === 'number' ? fee.toLocaleString() : fee}`;
+                  })()}
+                />
+                <InfoItem
+                  label="Payment Reference"
+                  value={formData.paymentReference}
+                />
+                <InfoItem
+                  label="Created On"
+                  value={
+                    application.created_at
+                      ? new Date(application.created_at).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )
+                      : undefined
+                  }
+                />
+                <InfoItem
+                  label="Forwarded On"
+                  value={
+                    application.updated_at
+                      ? new Date(application.updated_at).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )
+                      : undefined
+                  }
+                />
+              </InfoSection>
+            </div>
+
+            {/* Documents */}
+            {(formData.passportPhoto || formData.paymentReceipt) && (
+              <div className="mt-6">
+                <InfoSection title="Documents">
+                  <div className="pt-2 flex gap-3 flex-wrap">
+                    {formData.passportPhoto && (
                       <a
-                        href={formData.paymentReceipt}
+                        href={`${BACKEND_URL}/membership/${application.uuid}/passportPhoto`}
                         target="_blank"
-                        rel="noreferrer"
-                        className="rounded-full bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition border border-blue-200"
                       >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Passport Photo
+                      </a>
+                    )}
+                    {formData.paymentReceipt && (
+                      <a
+                        href={`${BACKEND_URL}/membership/${application.uuid}/paymentReceipt`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition border border-green-200"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
                         Payment Receipt
                       </a>
                     )}
-                    
-                    {(!formData?.paymentReceipt) && (
-                      <span className="text-xs text-gray-500">Payment Receipt not uploaded by the user</span>
-                    )}
                   </div>
-                </div>
+                </InfoSection>
               </div>
-            </section>
+            )}
 
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-                Treasurer Remark
-                <span className="ml-2 text-red-500">*</span>
-              </h3>
+            {/* Applicant Notes */}
+            {formData.notes && formData.notes.trim() && (
+              <div className="mt-6">
+                <InfoSection title="Applicant Notes">
+                  <div className="pt-2">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{formData.notes}</p>
+                  </div>
+                </InfoSection>
+              </div>
+            )}
+
+            {/* Remarks Section */}
+            <div className="mt-8 rounded-2xl border border-gray-200 bg-gradient-to-br from-amber-50/50 to-white p-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-3">
+                Treasurer Remarks / Notes
+                <span className="ml-2 text-xs font-normal text-gray-500">
+                  (Required for returning to applicant)
+                </span>
+              </label>
               <textarea
                 value={remark}
                 onChange={(e) => {
                   setRemark(e.target.value);
                   if (remarkError && e.target.value.trim()) {
-                    setRemarkError('');
+                    setRemarkError("");
                   }
                 }}
-                rows={3}
+                rows={4}
                 placeholder="Eg: Payment verified via UPI. Forwarding to Secretary."
                 className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
-                  remarkError 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                    : 'border-gray-200 focus:border-blue-500 focus:ring-blue-200'
+                  remarkError
+                    ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                    : "border-gray-200 focus:border-blue-500 focus:ring-blue-200"
                 }`}
               />
               {remarkError && (
                 <p className="mt-2 text-xs text-red-600">{remarkError}</p>
               )}
               <p className="mt-2 text-xs text-gray-500">
-                Required for all actions. This remark will be visible to the applicant.
+                Required for all actions. This remark will be visible to the
+                applicant.
               </p>
-            </section>
+            </div>
 
-            <section className="space-y-3">
+            {/* Actions */}
+            <div className="mt-8 flex flex-wrap gap-3 pb-2">
               {ACTIONS.map((action) => (
                 <button
                   key={action.id}
-                  type="button"
-                  onClick={() => handleActionClick(action.id)}
-                  disabled={(!remark.trim() && action.id === 'reject') || (action.id === 'forward' && application.status !== 'FORWARDED_TO_TREASURER')}
-                  className={`w-full rounded-2xl bg-gradient-to-r ${action.style} px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100`}
+                  onClick={() => handleAction(action.id)}
+                  disabled={
+                    (action.id === "reject" &&
+                      (!remark.trim() ||
+                        application.status !== "FORWARDED_TO_TREASURER")) ||
+                    (action.id === "forward" &&
+                      application.status !== "FORWARDED_TO_TREASURER")
+                  }
+                  className={`rounded-xl bg-gradient-to-r ${action.style} px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100`}
                 >
                   {action.label}
                 </button>
               ))}
-              <p className="text-xs text-gray-500">
-                Actions will trigger notifications to the applicant and update workflow stages.
-              </p>
-            </section>
-            
-            <ConfirmationModal
-              isOpen={showConfirmModal}
-              onClose={() => {
-                setShowConfirmModal(false);
-                setPendingAction(null);
-              }}
-              onConfirm={handleConfirmAction}
-              {...getConfirmModalProps()}
-            />
+            </div>
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setPendingAction(null);
+        }}
+        onConfirm={handleConfirmAction}
+        {...getConfirmModalProps()}
+      />
     </div>
-  )
+  );
 }
 
 
 export default function TreasurerDashboard() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('FORWARDED_TO_TREASURER')
   const [selected, setSelected] = useState(null)
   const [remark, setRemark] = useState("")
   const [formsCount, setFormsCount] = useState({});
   const [formsDetail,setFormsDetail] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [dateSort, setDateSort] = useState('desc'); // 'asc' or 'desc'
 
-
+  const handleLogout = () => {
+    clearAuthData();
+    navigate("/login");
+  };
 
   const filteredList = useMemo(() => {
-    if (filter === 'all') return formsDetail
-    return formsDetail.filter((app) => app.status === filter)
-  }, [filter, formsDetail])
+    let list = filter === 'all' ? formsDetail : formsDetail.filter((app) => app.status === filter);
+    
+    // Sort by date - handle invalid dates properly
+    list = [...list].sort((a, b) => {
+      const getDate = (app) => {
+        const dateStr = app.updated_at || app.created_at || app.Submitted || app.submittedOn;
+        if (!dateStr) return new Date(0);
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? new Date(0) : date;
+      };
+      
+      const dateA = getDate(a);
+      const dateB = getDate(b);
+      
+      if (dateSort === 'asc') {
+        return dateA.getTime() - dateB.getTime();
+      } else {
+        return dateB.getTime() - dateA.getTime();
+      }
+    });
+    
+    return list;
+  }, [filter, formsDetail, dateSort])
 
 
   const Status = ['FORWARDED_TO_TREASURER','FORWARDED_TO_SECRETARY','TREASURER_REJECTED'];
@@ -366,7 +633,7 @@ export default function TreasurerDashboard() {
     Status.forEach(status => {
       url.searchParams.append("status",status)
     })
-    fetch(url,{
+    return fetch(url,{
       headers: {authorization: window.localStorage.getItem("token")}})
       .then(res => {
         if (!res.ok) throw new Error("Invalid or expired link");
@@ -374,15 +641,17 @@ export default function TreasurerDashboard() {
       })
       .then(data => {
         setFormsDetail(data);
+        return data;
       })
       .catch(err => {
         console.error("fetch failed", err);
+        throw err;
       })
   };
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    fetch("http://localhost:3000/treasurer/formsCount",{
+    return fetch("http://localhost:3000/treasurer/formsCount",{
       headers: {authorization: window.localStorage.getItem("token")}})
       .then(res => {
         if (!res.ok) throw new Error("Invalid or expired link");
@@ -390,9 +659,11 @@ export default function TreasurerDashboard() {
       })
       .then(data => {
         setFormsCount(data[0]);
+        return data;
       })
       .catch(err => {
         console.error("fetch failed", err);
+        throw err;
       })
   };
 
@@ -413,14 +684,36 @@ export default function TreasurerDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Treasurer Workspace</p>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">Membership Verification Dashboard</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600">
-            Review payment evidence, update remarks and move applications through the workflow.
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Treasurer Workspace</p>
+              <h1 className="mt-2 text-3xl font-bold text-gray-900">Membership Verification Dashboard</h1>
+              <p className="mt-2 max-w-3xl text-sm text-gray-600">
+                Review payment evidence, update remarks and move applications through the workflow.
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-red-600 hover:shadow-lg"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Logout
+            </button>
+          </div>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -448,14 +741,38 @@ export default function TreasurerDashboard() {
           ))}
         </div>
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Date Sort Filter */}
+        <div className="mt-6 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">Applications</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Sort by date:</span>
+            <button
+              type="button"
+              onClick={() => setDateSort(dateSort === 'asc' ? 'desc' : 'asc')}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              {dateSort === 'asc' ? '↑ Oldest First' : '↓ Newest First'}
+            </button>
+          </div>
+        </div>
+
+        {/* Table Header for Row View */}
+        <div className="mt-4 hidden md:grid grid-cols-5 gap-4 px-4 py-2 bg-gray-50 rounded-t-lg border border-gray-200">
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Application #</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Applicant</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Date</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Reference</div>
+        </div>
+
+        <section className="mt-0 space-y-2">
           {filteredList.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+            <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
               No applications found for this status.
             </div>
           ) : (
             filteredList.map((app) => (
-              <ApplicationCard 
+              <ApplicationRow 
                 key={app.uuid} 
                 application={app} 
                 onSelect={async (data) => {
@@ -493,7 +810,6 @@ export default function TreasurerDashboard() {
           )}
         </section>
       </main>
-      <Footer />
 
       {selected ? (
         <DetailPanel 
@@ -505,10 +821,9 @@ export default function TreasurerDashboard() {
             setLoadingDetails(false);
           }}
           isLoading={loadingDetails}
-          onActionComplete={() => {
+          onActionComplete={async () => {
             // Refresh both forms detail and count after action
-            fetchFormsDetail();
-            fetchFormsCount();
+            await Promise.all([fetchFormsDetail(), fetchFormsCount()]);
           }}
         />
       ) : null}

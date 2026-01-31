@@ -1,7 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { EDITABLE_STATES } from '../../constants/formStatus';
+import { EDITABLE_STATES, FORM_STATUS } from '../../constants/formStatus';
 import validateFile from '../../utils/fileLimit.js'
+import { 
+  countriesWithPhoneCodes, 
+  getCountriesList, 
+  getPhoneCountryCodes,
+  getPhoneCodeByCountry 
+} from '../../data/countriesData.js'
 
 const CITIZENSHIP_TYPES = {
   indian: {
@@ -26,15 +32,9 @@ const CITIZENSHIP_TYPES = {
   },
 }
 
-const phoneCountryCodes = [
-  { code: '+91', label: '🇮🇳 +91' },
-  { code: '+1', label: '🇺🇸 +1' },
-  { code: '+44', label: '🇬🇧 +44' },
-  { code: '+61', label: '🇦🇺 +61' },
-  { code: '+971', label: '🇦🇪 +971' },
-]
-
-const countries = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'France', 'Germany', 'United Arab Emirates']
+// Get comprehensive lists from the data file
+const phoneCountryCodes = getPhoneCountryCodes();
+const countries = getCountriesList();
 
 const BANK_DETAILS = {
   accountName: 'Academy of Discrete Mathematics and Applications',
@@ -49,6 +49,14 @@ const BANK_DETAILS = {
 
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024;    // 2MB
 const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;  // 5MB
+
+const STATUS_MESSAGES = {
+  [FORM_STATUS.FORWARDED_TO_TREASURER]: 'Your form is under review by the Treasurer.',
+  [FORM_STATUS.FORWARDED_TO_SECRETARY]: 'Your form has been forwarded to the Secretary for final approval.',
+  [FORM_STATUS.APPROVED]: 'Congratulations! Your membership has been approved.',
+  [FORM_STATUS.TREASURER_REJECTED]: 'Your form was returned by the Treasurer.',
+  [FORM_STATUS.SECRETARY_REJECTED]: 'Your form was returned by the Secretary.',
+};
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 const RECEIPT_TYPES = [
@@ -109,6 +117,10 @@ export default function MembershipForm() {
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [uploadFile,setUploadFile] = useState({passportPhoto: null, paymentReceipt: null});
+  const [formStatus, setFormStatus] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   const days = useMemo(() => Array.from({ length: 31 }, (_, idx) => String(idx + 1).padStart(2, '0')), [])
   const months = useMemo(
@@ -129,6 +141,21 @@ export default function MembershipForm() {
   const isInstitutional = useMemo(() => {
     return selectedType.id === 'institutional' || selectedType.id === 'institutional_foreign'
   }, [selectedType])
+
+  // Sort countries alphabetically for better UX
+  const sortedCountries = useMemo(() => {
+    return [...countries].sort((a, b) => a.localeCompare(b));
+  }, []);
+
+  // Sort phone codes by country name for better UX
+  const sortedPhoneCodes = useMemo(() => {
+    return [...phoneCountryCodes].sort((a, b) => {
+      // Extract country name from label (remove flag and code)
+      const countryA = a.country || '';
+      const countryB = b.country || '';
+      return countryA.localeCompare(countryB);
+    });
+  }, []);
 
   
   function validateBeforeUpload(uploadFile) {
@@ -153,7 +180,7 @@ export default function MembershipForm() {
   
 
 
-  //Load draft using uuid
+  // Load draft using uuid
   useEffect(() => {
     fetch(`http://localhost:3000/forms/${uuid}`)
       .then(res => {
@@ -161,13 +188,16 @@ export default function MembershipForm() {
         return res.json();
       })
       .then(form => {
-        if(!EDITABLE_STATES.includes(form.status)){
+        const status = form.status || FORM_STATUS.DRAFT;
+        setFormStatus(status);
+        setRejectionReason(form.rejection_reason || null);
+        if (!EDITABLE_STATES.includes(status)) {
           setIsSubmitted(true);
         }
         // Merge loaded data with defaults to ensure all default values are preserved
         const loadedData = { ...DEFAULT_FORM_DATA, ...(form.data || {}) };
         setFormData(loadedData);
-        
+
         // Restore citizenship and membership type from loaded data
         if (loadedData.citizenship) {
           setCitizenship(loadedData.citizenship);
@@ -175,16 +205,22 @@ export default function MembershipForm() {
         if (loadedData.membershipType && loadedData.membershipType.id) {
           setSelectedType(loadedData.membershipType);
         }
-        
+
         setStep(form.current_step || 1);
         setIsInitialLoad(false);
       })
       .catch(() => {
         // If form doesn't exist, still mark as loaded so auto-save can work
         setIsInitialLoad(false);
-        // navigate("/invalid-link");
       });
   }, [uuid]);
+
+  // Show status/rejection modal when form is loaded and status is not DRAFT (or is rejected)
+  useEffect(() => {
+    if (isInitialLoad || !formStatus) return;
+    if (formStatus === FORM_STATUS.DRAFT) return;
+    setShowStatusModal(true);
+  }, [isInitialLoad, formStatus]);
 
 
   const handleCitizenshipChange = (type) => {
@@ -201,7 +237,15 @@ export default function MembershipForm() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value }
+      // Auto-sync phone code when country changes
+      if (name === 'country') {
+        const phoneCode = getPhoneCodeByCountry(value)
+        updated.phoneCode = phoneCode
+      }
+      return updated
+    })
   }
 
   const handleFileChange = (e) => {
@@ -300,9 +344,6 @@ export default function MembershipForm() {
   }
 
 
-
-
-
   const saveDraft = async (formData, step, emailValue) => {
     if(isSubmitted) return;
     await fetch(`http://localhost:3000/forms/${uuid}`, {
@@ -364,25 +405,37 @@ export default function MembershipForm() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmitClick = (e) => {
+    e.preventDefault();
     if (!formData.paymentReference.trim()) {
-      alert('Transaction reference number is required')
-      return
+      alert('Transaction reference number is required');
+      return;
     }
-    await saveDraft(formData,step,formData.email);
+    setShowSubmitConfirm(true);
+  };
+
+  const handleSubmitConfirm = async () => {
+    setShowSubmitConfirm(false);
+    setIsSubmitting(true);
+    await saveDraft(formData, step, formData.email);
     try {
       const res = await fetch(
         `http://localhost:3000/forms/${uuid}/submit`,
         { method: "POST" }
       );
-  
       if (!res.ok) throw new Error();
-  
       setIsSubmitted(true);
-      setStatusMessage('Your Form has been Submmited')
+      setStatusMessage('Your Form has been Submitted');
+      
+      if(formStatus === FORM_STATUS.SECRETARY_REJECTED){
+        setFormStatus(FORM_STATUS.FORWARDED_TO_SECRETARY);
+      }else{
+        setFormStatus(FORM_STATUS.FORWARDED_TO_TREASURER);
+      }
     } catch {
       alert("Submission failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -649,7 +702,7 @@ export default function MembershipForm() {
                     onChange={handleInputChange}
                     className="rounded-full border border-gray-200 px-4 py-3"
                   >
-                    {countries.map((country) => (
+                    {sortedCountries.map((country) => (
                       <option key={country} value={country}>
                         {country}
                       </option>
@@ -663,7 +716,7 @@ export default function MembershipForm() {
                       onChange={handleInputChange}
                       className="rounded-full border border-gray-200 px-3 py-3"
                     >
-                      {phoneCountryCodes.map((entry) => (
+                      {sortedPhoneCodes.map((entry) => (
                         <option key={entry.code} value={entry.code}>
                           {entry.label}
                         </option>
@@ -776,7 +829,7 @@ export default function MembershipForm() {
               </div>
             </form>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmitClick} className="space-y-6">
               {/* Review Section - Step 1 Details */}
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <h2 className="mb-4 text-xl font-bold text-gray-900">Review Your Details</h2>
@@ -1024,16 +1077,74 @@ export default function MembershipForm() {
                 {statusMessage && <p className="text-sm text-green-600">{statusMessage}</p>}
                 <button
                   type="submit"
-                  disabled = {isSubmitted}
+                  disabled={isSubmitted || isSubmitting}
                   className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-3 font-semibold text-white shadow-lg transition hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSubmitted ? 'Submitted' : 'Submit Now'}
+                  {isSubmitting ? 'Submitting...' : isSubmitted ? 'Submitted' : 'Submit Now'}
                 </button>
               </div>
             </form>
           )}
         </div>
       </div>
+
+      {/* Submit confirmation modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900">Confirm Submission</h3>
+            <p className="mt-3 text-gray-600">
+              Are you sure you want to submit your membership form? Once submitted, you will not be able to edit until it is reviewed.
+            </p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitConfirm}
+                className="rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-2.5 font-semibold text-white hover:from-blue-700 hover:to-blue-800"
+              >
+                Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status / rejection info modal */}
+      {showStatusModal && formStatus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900">Form Status</h3>
+            <div className="mt-3 space-y-2">
+              <p className="text-gray-600">
+                {STATUS_MESSAGES[formStatus] || `Your form status: ${formStatus}`}
+              </p>
+              {rejectionReason && EDITABLE_STATES.includes(formStatus) && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                  <p className="text-sm font-semibold text-amber-800">Reason for return:</p>
+                  <p className="mt-1 text-sm text-amber-900">{rejectionReason}</p>
+                  <p className="mt-2 text-sm text-amber-700">Please make the necessary changes and resubmit.</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowStatusModal(false)}
+                className="rounded-full bg-blue-600 px-6 py-2.5 font-semibold text-white hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

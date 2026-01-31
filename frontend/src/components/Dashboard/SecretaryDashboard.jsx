@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../LandingPage/Navbar";
-import Footer from "../LandingPage/Footer";
+import { clearAuthData } from "../../utils/tokenUtils";
 
 const STATUS_META = {
   all: { label: "All", badge: "bg-gray-100 text-gray-700" },
@@ -29,6 +28,8 @@ const ACTIONS = [
   },
 ];
 
+const BACKEND_URL  = "http://localhost:3000"
+
 function StatCard({ label, value, accent }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -39,10 +40,9 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function ApplicationCard({ application, onClick }) {
-  const statusMeta = STATUS_META[application.status] || STATUS_META.pending;
+function ApplicationRow({ application, onClick }) {
   const submittedDate =
-    application.updated_at || application.Submitted || application.submittedOn;
+    application.updated_at || application.created_at || application.Submitted || application.submittedOn;
   const formattedDate = submittedDate
     ? new Date(submittedDate).toLocaleDateString("en-GB", {
         day: "numeric",
@@ -51,44 +51,26 @@ function ApplicationCard({ application, onClick }) {
       })
     : "N/A";
 
+
   return (
     <button
       type="button"
       onClick={() => onClick(application)}
-      className="w-full rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
+      className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-blue-400 hover:bg-blue-50/30 hover:shadow-sm last:rounded-b-lg"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">
-            {application.name}
-          </p>
-          <p className="text-xs text-gray-500">{application.membershipType}</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 items-center">
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="md:font-normal font-mono text-xs">{application.application_number}</span>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.badge}`}
-        >
-          {statusMeta.label}
-        </span>
+        <div className="md:col-span-1">
+          <p className="text-sm font-semibold text-gray-900">{application.name}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{application.membershipType || 'N/A'}</p>
+        </div>
+        <div className="md:col-span-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800 hidden md:inline">Date: </span>
+          <span className="md:font-normal">{formattedDate}</span>
+        </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
-        <p>
-          <span className="font-medium text-gray-800">Forwarded:</span>{" "}
-          {formattedDate}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Amount:</span>{" "}
-          {application.Amount}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Reference:</span>{" "}
-          {application.paymentReference}
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Affiliation:</span>{" "}
-          {application.affiliation}
-        </p>
-      </div>
-      <p className="mt-4 text-xs text-gray-500">{application.note}</p>
     </button>
   );
 }
@@ -173,7 +155,6 @@ function DetailPanel({
       setPendingAction(actionId);
       setShowConfirmModal(true);
     } else if (actionId === "approve") {
-      // Show confirmation for approve
       setPendingAction(actionId);
       setShowConfirmModal(true);
     }
@@ -311,9 +292,8 @@ function DetailPanel({
                   Application Details
                 </h2>
                 <p className="mt-2 text-sm text-gray-500">
-                  ID:{" "}
                   <span className="font-semibold text-gray-700">
-                    {application.uuid || application.id}
+                    {application.application_number}
                   </span>
                 </p>
               </div>
@@ -391,11 +371,26 @@ function DetailPanel({
                 />
                 <InfoItem
                   label="Amount"
-                  value={`₹${formData.membershipType?.fee || "0"}`}
-                />
-                <InfoItem
-                  label="Payment Reference"
-                  value={formData.paymentReference}
+                  value={(() => {
+                    // Determine currency based on multiple checks:
+                    // 1. Check citizenship field
+                    // 2. Check membershipType.id for '_foreign' suffix
+                    // 3. Check membershipType.currency
+                    let currency = 'INR'; // default
+                    if (formData.citizenship === 'foreign') {
+                      currency = 'USD';
+                    } else if (formData.citizenship === 'indian') {
+                      currency = 'INR';
+                    } else if (formData.membershipType?.id && formData.membershipType.id.includes('_foreign')) {
+                      // Check if membership type ID contains '_foreign' (e.g., 'patron_foreign')
+                      currency = 'USD';
+                    } else if (formData.membershipType?.currency) {
+                      currency = formData.membershipType.currency;
+                    }
+                    const symbol = currency === 'USD' ? '$' : '₹';
+                    const fee = formData.membershipType?.fee || 0;
+                    return `${symbol}${typeof fee === 'number' ? fee.toLocaleString() : fee}`;
+                  })()}
                 />
                 <InfoItem
                   label="Created On"
@@ -430,57 +425,43 @@ function DetailPanel({
               </InfoSection>
             </div>
 
-            {/* Documents */}
-            {(formData.passportPhoto || formData.paymentReceipt) && (
+            {/* Documents - Only Passport Photo for Secretary */}
+            {formData.passportPhoto && (
               <div className="mt-6">
                 <InfoSection title="Documents">
                   <div className="pt-2 flex gap-3 flex-wrap">
-                    {formData.passportPhoto && (
-                      <a
-                        href={`http://localhost:3000/${formData.passportPhoto}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition border border-blue-200"
+                    <a
+                      href={`${BACKEND_URL}/membership/${application.uuid}/passportPhoto`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition border border-blue-200"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Passport Photo
-                      </a>
-                    )}
-                    {formData.paymentReceipt && (
-                      <a
-                        href={`http://localhost:3000/${formData.paymentReceipt}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition border border-green-200"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Payment Receipt
-                      </a>
-                    )}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Passport Photo
+                    </a>
+                  </div>
+                </InfoSection>
+              </div>
+            )}
+
+            {/* Applicant Notes */}
+            {formData.notes && formData.notes.trim() && (
+              <div className="mt-6">
+                <InfoSection title="Applicant Notes">
+                  <div className="pt-2">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{formData.notes}</p>
                   </div>
                 </InfoSection>
               </div>
@@ -556,6 +537,7 @@ function DetailPanel({
 }
 
 export default function SecretaryDashboard() {
+  const navigate = useNavigate();
   const [selectedStatus, setSelectedStatus] = useState(
     "FORWARDED_TO_SECRETARY"
   );
@@ -564,11 +546,37 @@ export default function SecretaryDashboard() {
   const [formsCount, setFormsCount] = useState({});
   const [formsDetail, setFormsDetail] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [dateSort, setDateSort] = useState('desc'); // 'asc' or 'desc'
+
+  const handleLogout = () => {
+    clearAuthData();
+    navigate("/login");
+  };
 
   const filteredApplications = useMemo(() => {
-    if (selectedStatus === "all") return formsDetail;
-    return formsDetail.filter((app) => app.status === selectedStatus);
-  }, [selectedStatus, formsDetail]);
+    let list = selectedStatus === "all" ? formsDetail : formsDetail.filter((app) => app.status === selectedStatus);
+    
+    // Sort by date - handle invalid dates properly
+    list = [...list].sort((a, b) => {
+      const getDate = (app) => {
+        const dateStr = app.updated_at || app.created_at || app.Submitted || app.submittedOn;
+        if (!dateStr) return new Date(0);
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? new Date(0) : date;
+      };
+      
+      const dateA = getDate(a);
+      const dateB = getDate(b);
+      
+      if (dateSort === 'asc') {
+        return dateA.getTime() - dateB.getTime();
+      } else {
+        return dateB.getTime() - dateA.getTime();
+      }
+    });
+    
+    return list;
+  }, [selectedStatus, formsDetail, dateSort]);
 
   const Status = ["FORWARDED_TO_SECRETARY", "APPROVED", "SECRETARY_REJECTED"];
 
@@ -578,7 +586,7 @@ export default function SecretaryDashboard() {
     Status.forEach((status) => {
       url.searchParams.append("status", status);
     });
-    fetch(url, {
+    return fetch(url, {
       headers: { authorization: window.localStorage.getItem("token") },
     })
       .then((res) => {
@@ -587,15 +595,17 @@ export default function SecretaryDashboard() {
       })
       .then((data) => {
         setFormsDetail(data);
+        return data;
       })
       .catch((err) => {
         console.error("fetch failed", err);
+        throw err;
       });
   };
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    fetch("http://localhost:3000/secretary/formsCount", {
+    return fetch("http://localhost:3000/secretary/formsCount", {
       headers: { authorization: window.localStorage.getItem("token") },
     })
       .then((res) => {
@@ -604,9 +614,11 @@ export default function SecretaryDashboard() {
       })
       .then((data) => {
         setFormsCount(data[0]);
+        return data;
       })
       .catch((err) => {
         console.error("fetch failed", err);
+        throw err;
       });
   };
 
@@ -628,18 +640,40 @@ export default function SecretaryDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
-            Secretary Workspace
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">
-            Membership Approval Dashboard
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Review and approve membership applications forwarded by Treasurer
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+                Secretary Workspace
+              </p>
+              <h1 className="mt-2 text-3xl font-bold text-gray-900">
+                Membership Approval Dashboard
+              </h1>
+              <p className="mt-2 text-gray-600">
+                Review and approve membership applications forwarded by Treasurer
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-red-600 hover:shadow-lg"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Logout
+            </button>
+          </div>
         </header>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -685,14 +719,36 @@ export default function SecretaryDashboard() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Date Sort Filter */}
+        <div className="mt-6 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">Applications</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Sort by date:</span>
+            <button
+              type="button"
+              onClick={() => setDateSort(dateSort === 'asc' ? 'desc' : 'asc')}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              {dateSort === 'asc' ? '↑ Oldest First' : '↓ Newest First'}
+            </button>
+          </div>
+        </div>
+
+        {/* Table Header for Row View */}
+        <div className="mt-4 hidden md:grid grid-cols-3 gap-4 px-4 py-2 bg-gray-50 rounded-t-lg border border-gray-200">
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Application #</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Applicant</div>
+          <div className="col-span-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">Date</div>
+        </div>
+
+        <section className="mt-0 space-y-2">
           {filteredApplications.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+            <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
               No applications found for this status.
             </div>
           ) : (
             filteredApplications.map((application) => (
-              <ApplicationCard
+              <ApplicationRow
                 key={application.id}
                 application={application}
                 onClick={async (data) => {
@@ -735,9 +791,8 @@ export default function SecretaryDashboard() {
               />
             ))
           )}
-        </div>
+        </section>
       </main>
-      <Footer />
 
       {selectedApplication && (
         <DetailPanel
@@ -749,9 +804,9 @@ export default function SecretaryDashboard() {
             setLoadingDetails(false);
           }}
           isLoading={loadingDetails}
-          onActionComplete={() => {
-            fetchFormsDetail();
-            fetchFormsCount();
+          onActionComplete={async () => {
+            // Refresh both forms detail and count after action
+            await Promise.all([fetchFormsDetail(), fetchFormsCount()]);
           }}
         />
       )}

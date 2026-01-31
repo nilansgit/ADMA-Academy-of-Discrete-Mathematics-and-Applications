@@ -24,7 +24,7 @@ export const getCounts = async () => {
 }
 
 export const getAllForms = async (statuses) => {
-    const query = `SELECT uuid,status, data->> '$.name' AS name, data->> '$.affiliation' AS affiliation,
+    const query = `SELECT uuid, application_number, status, data->> '$.name' AS name, data->> '$.affiliation' AS affiliation,
                     data->> '$.paymentReference' AS paymentReference, data->> '$.membershipType.fee' AS Amount,
                     data->> '$.membershipType.title' AS membershipType, data->> '$.notes' AS note,
                     updated_at AS Submitted FROM membership_forms WHERE STATUS IN (?)`

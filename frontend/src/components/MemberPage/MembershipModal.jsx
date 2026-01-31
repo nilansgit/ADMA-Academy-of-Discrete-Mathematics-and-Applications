@@ -57,11 +57,11 @@ export default function MembershipModal({ isOpen, onClose, onApply }) {
             </li>
           </ol>
 
-          <div className="mb-8 p-4 rounded-lg bg-white/10 backdrop-blur-sm">
+          {/* <div className="mb-8 p-4 rounded-lg bg-white/10 backdrop-blur-sm">
             <p className="text-white text-base md:text-lg leading-relaxed">
               <span className="font-semibold">Annual Membership Fee:</span> INR 1500 for Indian residents, $50 for international members
             </p>
-          </div>
+          </div> */}
 
           <div className="mt-auto text-center">
             <button

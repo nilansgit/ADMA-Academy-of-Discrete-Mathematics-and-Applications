@@ -1,4 +1,5 @@
 import { pool } from '../config/db.js';
+import { FORM_STATUS } from '../constants/formStatus.js';
 
 export const createForm = async(uuid) => {
   const query = `INSERT INTO membership_forms(uuid) VALUES (?)`;
@@ -7,7 +8,7 @@ export const createForm = async(uuid) => {
 };
 
 export const checkStatus = async(uuid) => {
-  const query = `SELECT status FROM membership_forms WHERE uuid = ?`;
+  const query = `SELECT status, id FROM membership_forms WHERE uuid = ?`;
   const [rows] = await pool.query(query,[uuid]);
   return rows;
 }
@@ -27,7 +28,7 @@ export const getFormByUUID = async (uuid) => {
 export const saveDraft = async(uuid,data,currentStep,email) => {
   const query = `UPDATE membership_forms
     SET data = ?, current_step = ?, email = ?
-    WHERE uuid = ? AND status = 'DRAFT'`
+    WHERE uuid = ?`
   await pool.query(query,
     [
       JSON.stringify(data),
@@ -38,9 +39,21 @@ export const saveDraft = async(uuid,data,currentStep,email) => {
   );
 }
 
-export const submitForm = async(uuid) => {
-  const query = `UPDATE membership_forms set status= 'FORWARDED_TO_TREASURER' WHERE uuid = ?`;
-  await pool.query(query,[uuid]);
+export const submitForm = async(uuid,currentStatus,id) => {
+  let setStatus = FORM_STATUS.FORWARDED_TO_TREASURER;
+  if(currentStatus === FORM_STATUS.SECRETARY_REJECTED){
+    setStatus = FORM_STATUS.FORWARDED_TO_SECRETARY;
+  }
+
+  if (currentStatus === FORM_STATUS.DRAFT){
+    const year = new Date().getFullYear();
+    const applicationNumber = `ADMA-${year}-${String(id).padStart(6, '0')}`;
+    const query = `UPDATE membership_forms set status= ?, application_number = ? WHERE uuid = ?`;
+    await pool.query(query,[setStatus,applicationNumber,uuid]);
+  }else{
+    const query = `UPDATE membership_forms set status= ? WHERE uuid = ?`;
+    await pool.query(query,[setStatus,uuid]);
+  }
 };
 
 

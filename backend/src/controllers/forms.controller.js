@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { createForm, getFormByUUID, saveDraft, submitForm, checkStatus, uploadFile } from "../models/forms.model.js";
-import {FORM_STATUS} from "../constants/formStatus.js";
+import {FORM_STATUS, EDITABLE_STATES} from "../constants/formStatus.js";
 import { deleteFileIfExists } from "../services/fileCleanup.service.js";
 
 
@@ -40,7 +40,8 @@ export const saveDraftController = async (req, res) => {
     const { uuid } = req.params;
     const rows = await checkStatus(uuid);
 
-    if (!rows.length || rows[0].status !== "DRAFT") {
+    if (!rows.length || !EDITABLE_STATES.includes(rows[0].status)) {
+      
       return res.status(403).json({ error: "Form is locked" });
     }
 
@@ -60,7 +61,6 @@ export const submitFormController = async(req,res) => {
   const {uuid} = req.params;
 
   const rows = await checkStatus(uuid);
-  console.log(rows);
 
   if (!rows.length) {
     return res.status(404).json({ error: "Form not found" });
@@ -72,7 +72,7 @@ export const submitFormController = async(req,res) => {
     return res.status(400).json({ error: "Form already submitted" });
   }
 
-  await submitForm(uuid);
+  await submitForm(uuid,currentStatus,rows[0].id);
   console.log("form Submiited",uuid);
 
   res.json({success: true});
