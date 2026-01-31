@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Navbar from "../LandingPage/Navbar";
 import Footer from "../LandingPage/Footer";
+import MembershipModal from "../MemberPage/MembershipModal";
+import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
 function MemberCard({ member }) {
@@ -74,14 +75,15 @@ function TermSection({ termTitle, roles }) {
 }
 
 export default function OfficeBearersPage() {
-  const navigate = useNavigate();
+  const { isModalOpen, openModal, closeModal, handleApplyNow } =
+    useMembershipModal();
   const [groupedBearers, setGroupedBearers] = useState({});
 
   useEffect(() => {
     const fetchBearers = async () => {
       try {
         const response = await fetch(
-          `${STRAPI_BASE_URL}/api/office-bearers?sort[0]=office_term.Start:desc&sort[1]=office_role.Order:asc&populate=Picture&populate=office_role&populate=office_term`
+          `${STRAPI_BASE_URL}/api/office-bearers?sort[0]=office_term.Start:desc&sort[1]=office_role.Order:asc&populate=Picture&populate=office_role&populate=office_term`,
         );
         const result = await response.json();
 
@@ -107,11 +109,9 @@ export default function OfficeBearersPage() {
     fetchBearers();
   }, []);
 
-  const handleBecomeMember = () => navigate("/membership/apply");
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar onBecomeMemberClick={handleBecomeMember} />
+      <Navbar onBecomeMemberClick={openModal} />
 
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <header className="mb-8">
@@ -141,6 +141,11 @@ export default function OfficeBearersPage() {
       </main>
 
       <Footer />
+      <MembershipModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onApply={handleApplyNow}
+      />
     </div>
   );
 }

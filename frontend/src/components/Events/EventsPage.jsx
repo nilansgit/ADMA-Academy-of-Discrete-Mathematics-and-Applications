@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../LandingPage/Navbar";
 import Footer from "../LandingPage/Footer";
+import MembershipModal from "../MemberPage/MembershipModal";
+import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
 function EventCard({ event }) {
@@ -14,7 +16,7 @@ function EventCard({ event }) {
       window.open(
         `${STRAPI_BASE_URL}${pdfUrl}`,
         "_blank",
-        "noopener,noreferrer"
+        "noopener,noreferrer",
       );
     } else if (externalLink) {
       window.open(externalLink, "_blank", "noopener,noreferrer");
@@ -105,6 +107,8 @@ function EventSection({ title, events, handleClick }) {
 
 export default function EventsPage() {
   const navigate = useNavigate();
+  const { isModalOpen, openModal, closeModal, handleApplyNow } =
+    useMembershipModal();
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [pastEvents, setPastEvents] = useState([]);
 
@@ -112,13 +116,13 @@ export default function EventsPage() {
     const fetchEvents = async () => {
       try {
         const response = await fetch(
-          `${STRAPI_BASE_URL}/api/events?sort[0]=createdAt:desc&populate=PDF`
+          `${STRAPI_BASE_URL}/api/events?sort[0]=createdAt:desc&populate=PDF`,
         );
         const result = await response.json();
 
         if (result.data) {
           const upcoming = result.data.filter(
-            (e) => e.Event_Status === "Upcoming"
+            (e) => e.Event_Status === "Upcoming",
           );
           const past = result.data.filter((e) => e.Event_Status === "Past");
 
@@ -133,17 +137,13 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
-  const handleBecomeMember = () => {
-    navigate("/membership/apply");
-  };
-
   const handleGoToArchives = () => {
     navigate("/events/archives");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar onBecomeMemberClick={handleBecomeMember} />
+      <Navbar onBecomeMemberClick={openModal} />
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-0">
         <header className="mb-10">
           <p className="text-sm uppercase tracking-[0.25em] text-yellow-500">
@@ -171,6 +171,11 @@ export default function EventsPage() {
         </div>
       </main>
       <Footer />
+      <MembershipModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onApply={handleApplyNow}
+      />
     </div>
   );
 }

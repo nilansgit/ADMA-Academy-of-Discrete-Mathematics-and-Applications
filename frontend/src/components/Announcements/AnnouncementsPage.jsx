@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../LandingPage/Navbar";
 import Footer from "../LandingPage/Footer";
+import MembershipModal from "../MemberPage/MembershipModal";
+import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
 function BulletinBoard({ announcements, handleClick }) {
@@ -13,7 +15,7 @@ function BulletinBoard({ announcements, handleClick }) {
       window.open(
         `${STRAPI_BASE_URL}${pdfUrl}`,
         "_blank",
-        "noopener,noreferrer"
+        "noopener,noreferrer",
       );
     } else if (externalLink) {
       window.open(externalLink, "_blank", "noopener,noreferrer");
@@ -83,6 +85,8 @@ function BulletinBoard({ announcements, handleClick }) {
 
 export default function AnnouncementsPage() {
   const navigate = useNavigate();
+  const { isModalOpen, openModal, closeModal, handleApplyNow } =
+    useMembershipModal();
   const [announcements, setAnnouncements] = useState([]);
   const BULLETIN_STATUS = "Current";
 
@@ -105,17 +109,13 @@ export default function AnnouncementsPage() {
     fetchBulletins();
   }, []);
 
-  const handleBecomeMember = () => {
-    navigate("/membership/apply");
-  };
-
   const handleGoToArchives = () => {
     navigate("/announcements/archives");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
-      <Navbar onBecomeMemberClick={handleBecomeMember} />
+      <Navbar onBecomeMemberClick={openModal} />
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-0">
         <header className="mb-10">
           <p className="text-sm uppercase tracking-[0.25em] text-yellow-500">
@@ -135,6 +135,11 @@ export default function AnnouncementsPage() {
         />
       </main>
       <Footer />
+      <MembershipModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onApply={handleApplyNow}
+      />
     </div>
   );
 }
