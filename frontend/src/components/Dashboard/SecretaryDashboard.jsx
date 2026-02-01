@@ -28,7 +28,7 @@ const ACTIONS = [
   },
 ];
 
-const BACKEND_URL  = "http://localhost:3000"
+const BACKEND_URL  = import.meta.env.VITE_BACKEND_URL
 
 function StatCard({ label, value, accent }) {
   return (
@@ -165,7 +165,7 @@ function DetailPanel({
 
     try {
       const url = new URL(
-        `http://localhost:3000/secretary/${application.uuid}/${pendingAction}`
+        `${BACKEND_URL}/secretary/${application.uuid}/${pendingAction}`
       );
 
       const response = await fetch(url, {
@@ -523,7 +523,7 @@ export default function SecretaryDashboard() {
 
   // Fetch forms detail
   const fetchFormsDetail = async () => {
-    const url = new URL("http://localhost:3000/secretary/forms");
+    const url = new URL(`${BACKEND_URL}/secretary/forms`);
     Status.forEach((status) => {
       url.searchParams.append("status", status);
     });
@@ -546,7 +546,7 @@ export default function SecretaryDashboard() {
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    return fetch("http://localhost:3000/secretary/formsCount", {
+    return fetch(`${BACKEND_URL}/secretary/formsCount`, {
       headers: { authorization: window.localStorage.getItem("token") },
     })
       .then((res) => {
@@ -699,7 +699,7 @@ export default function SecretaryDashboard() {
 
                   try {
                     const url = new URL(
-                      `http://localhost:3000/secretary/forms/${data.uuid}`
+                      `${BACKEND_URL}/secretary/forms/${data.uuid}`
                     );
                     if (data.status) {
                       url.searchParams.append("status", data.status);

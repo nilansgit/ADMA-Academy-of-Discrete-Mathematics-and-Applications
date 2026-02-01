@@ -103,7 +103,7 @@ const DEFAULT_FORM_DATA = {
 }
 
 
-const BACKEND_URL  = "http://localhost:3000"
+const BACKEND_URL  = import.meta.env.VITE_BACKEND_URL
 
 export default function MembershipForm() {
   const {uuid} = useParams();
@@ -182,7 +182,7 @@ export default function MembershipForm() {
 
   // Load draft using uuid
   useEffect(() => {
-    fetch(`http://localhost:3000/forms/${uuid}`)
+    fetch(`${BACKEND_URL}/forms/${uuid}`)
       .then(res => {
         if (!res.ok) throw new Error("Invalid or expired link");
         return res.json();
@@ -327,7 +327,7 @@ export default function MembershipForm() {
       fd.append("paymentReceipt", uploadFile.paymentReceipt);
     }
 
-    const res = await fetch(`http://localhost:3000/forms/${uuid}/upload`, {
+    const res = await fetch(`${BACKEND_URL}/forms/${uuid}/upload`, {
       method: "POST",
       body: fd
     })
@@ -354,7 +354,7 @@ export default function MembershipForm() {
 
   const saveDraft = async (formData, step, emailValue) => {
     if(isSubmitted) return;
-    await fetch(`http://localhost:3000/forms/${uuid}`, {
+    await fetch(`${BACKEND_URL}/forms/${uuid}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -428,7 +428,7 @@ export default function MembershipForm() {
     await saveDraft(formData, step, formData.email);
     try {
       const res = await fetch(
-        `http://localhost:3000/forms/${uuid}/submit`,
+        `${BACKEND_URL}/forms/${uuid}/submit`,
         { method: "POST" }
       );
       if (!res.ok) throw new Error();

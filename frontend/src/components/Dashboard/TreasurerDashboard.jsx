@@ -15,7 +15,7 @@ const ACTIONS = [
   { id: 'reject', label: 'Return to Applicant', style: 'from-rose-500 to-rose-600' },
 ]
 
-const BACKEND_URL  = "http://localhost:3000"
+const BACKEND_URL  = import.meta.env.VITE_BACKEND_URL
 
 function StatCard({ label, value, accent }) {
   return (
@@ -182,7 +182,7 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
 
     try {
       const url = new URL(
-        `http://localhost:3000/treasurer/${application.uuid}/${pendingAction}`
+        `${BACKEND_URL}/treasurer/${application.uuid}/${pendingAction}`
       );
 
       const response = await fetch(url, {
@@ -527,7 +527,7 @@ export default function TreasurerDashboard() {
   
   // Function to fetch forms detail
   const fetchFormsDetail = async() => {
-    const url = new URL("http://localhost:3000/treasurer/forms")
+    const url = new URL(`${BACKEND_URL}/treasurer/forms`)
     Status.forEach(status => {
       url.searchParams.append("status",status)
     })
@@ -549,7 +549,7 @@ export default function TreasurerDashboard() {
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    return fetch("http://localhost:3000/treasurer/formsCount",{
+    return fetch(`${BACKEND_URL}/treasurer/formsCount`,{
       headers: {authorization: window.localStorage.getItem("token")}})
       .then(res => {
         if (!res.ok) throw new Error("Invalid or expired link");
@@ -679,7 +679,7 @@ export default function TreasurerDashboard() {
                   setRemark("");
                   
                   try {
-                    const url = new URL(`http://localhost:3000/treasurer/forms/${data.uuid}`);
+                    const url = new URL(`${BACKEND_URL}/treasurer/forms/${data.uuid}`);
                     if (data.status) {
                       url.searchParams.append('status', data.status);
                     }

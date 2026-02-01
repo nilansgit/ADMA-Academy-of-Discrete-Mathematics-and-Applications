@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -19,7 +21,7 @@ export default function Login() {
 
   const handleLogin = async (email,password) => {
     try{
-      const url = new URL("http://localhost:3000/auth/login")
+      const url = new URL(`${BACKEND_URL}/auth/login`)
       const res = await fetch(url, {
         method: "POST",
         headers: {"Content-Type": "application/json"},

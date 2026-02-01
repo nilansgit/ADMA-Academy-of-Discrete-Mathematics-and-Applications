@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
 export const useMembershipModal = () => {
     const navigate = useNavigate()
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -10,7 +12,7 @@ export const useMembershipModal = () => {
 
     const handleApplyNow = async () => {
         try {
-            const res = await fetch('http://localhost:3000/forms', { method: 'POST' })
+            const res = await fetch(`${BACKEND_URL}/forms`, { method: 'POST' })
             const { uuid } = await res.json()
             closeModal()
             navigate(`/membership/apply/${uuid}`)
