@@ -546,7 +546,7 @@ export default function SecretaryDashboard() {
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    return fetch(`${BACKEND_URL}/secretary/formsCount`,window.location.origin, {
+    return fetch(`${BACKEND_URL}/secretary/formsCount`,{
       headers: { authorization: window.localStorage.getItem("token") },
     })
       .then((res) => {
