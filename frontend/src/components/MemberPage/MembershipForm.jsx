@@ -235,8 +235,12 @@ export default function MembershipForm() {
     }))
   }
 
+  // When resubmitting after Secretary rejection, payment was already verified by Treasurer — lock payment fields
+  const isPaymentDetailsLocked = formStatus === FORM_STATUS.SECRETARY_REJECTED;
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    if (isPaymentDetailsLocked && name === 'paymentReference') return
     setFormData((prev) => {
       const updated = { ...prev, [name]: value }
       // Auto-sync phone code when country changes
@@ -250,6 +254,7 @@ export default function MembershipForm() {
 
   const handleFileChange = (e) => {
     const { name, files } = e.target
+    if (isPaymentDetailsLocked && name === 'paymentReceipt') return
     setUploadFile((prev) => ({ ...prev, [name]: files?.[0] ?? null }))
   }
 
@@ -317,7 +322,10 @@ export default function MembershipForm() {
     const fd = new FormData();
 
     if(uploadFile.passportPhoto) fd.append("passportPhoto",uploadFile.passportPhoto);
-    if(uploadFile.paymentReceipt) fd.append("paymentReceipt", uploadFile.paymentReceipt);
+    // Do not re-upload payment receipt when resubmitting after Secretary rejection (payment already verified by Treasurer)
+    if(uploadFile.paymentReceipt && formStatus !== FORM_STATUS.SECRETARY_REJECTED) {
+      fd.append("paymentReceipt", uploadFile.paymentReceipt);
+    }
 
     const res = await fetch(`http://localhost:3000/forms/${uuid}/upload`, {
       method: "POST",
@@ -1011,7 +1019,9 @@ export default function MembershipForm() {
                     <strong>Payment Amount:</strong> {CITIZENSHIP_TYPES[citizenship].currency} {selectedType.fee.toLocaleString()}
                   </p>
                   <p className="mt-2 text-xs text-yellow-700">
-                    Please make the payment using any of the above methods and enter the transaction reference below.
+                    {isPaymentDetailsLocked
+                      ? 'Payment details were verified by the Treasurer and cannot be changed. You may only update other details and resubmit.'
+                      : 'Please make the payment using any of the above methods and enter the transaction reference below.'}
                   </p>
                 </div>
               </div>
@@ -1023,10 +1033,10 @@ export default function MembershipForm() {
                   type="text"
                   name="paymentReference"
                   value={formData.paymentReference}
-                  disabled = {isSubmitted}
+                  disabled={isSubmitted || isPaymentDetailsLocked}
                   onChange={handleInputChange}
                   required
-                  className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-full border border-gray-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="UPI/IMPS/NEFT/RTGS Transaction ID"
                 />
               </div>
@@ -1040,8 +1050,8 @@ export default function MembershipForm() {
                     name="paymentReceipt"
                     accept=".pdf,.jpeg,.jpg,.png"
                     onChange={handleFileChange}
-                    disabled = {isSubmitted}
-                    className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3 text-sm"
+                    disabled={isSubmitted || isPaymentDetailsLocked}
+                    className="w-full rounded-full border border-dashed border-gray-300 px-4 py-3 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                   <p className="mt-2 text-xs text-gray-500">PDF, JPEG, or PNG, max 5MB</p>
                   {formData.paymentReceipt && (

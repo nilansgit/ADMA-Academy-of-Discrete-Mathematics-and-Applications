@@ -146,7 +146,7 @@ function DetailPanel({
       // Check if remark is filled
       if (!remark.trim()) {
         setRemarkError(
-          "Treasurer remark is required before returning to applicant"
+          "Secretary remark is required before returning to applicant"
         );
         return;
       }
@@ -179,33 +179,27 @@ function DetailPanel({
 
       if (!response.ok) throw new Error("Action failed");
 
-      // Close modal and detail panel
       setShowConfirmModal(false);
       setPendingAction(null);
-      onClose(); // Close the detail panel
 
-      // Refresh data before redirecting
+      // Refresh list and counts first so UI updates instantly when panel closes
       if (onActionComplete) {
-        onActionComplete();
+        await onActionComplete();
       }
-
-      // Small delay to ensure data refresh starts, then redirect
-      setTimeout(() => {
-        navigate("/dashboard/secretary", { replace: true });
-      }, 100);
+      onClose();
+      navigate("/dashboard/secretary", { replace: true });
     } catch (err) {
       console.error("Failed to process action:", err);
       alert("Failed to process the action. Please try again.");
       setShowConfirmModal(false);
       setPendingAction(null);
 
+      // Still refresh so UI stays in sync (e.g. if backend updated)
       if (onActionComplete) {
-        onActionComplete();
+        await onActionComplete();
       }
-      onClose(); // Close the detail panel
-      setTimeout(() => {
-        navigate("/dashboard/secretary", { replace: true });
-      }, 100);
+      onClose();
+      navigate("/dashboard/secretary", { replace: true });
     }
   };
 
@@ -228,7 +222,7 @@ function DetailPanel({
     return null;
   };
 
-  const formData = application?.data || {};
+  const formData = applicationData || {};
 
   const InfoSection = ({ title, children, className = "" }) => (
     <div
@@ -362,70 +356,17 @@ function DetailPanel({
               </div>
             )}
 
-            {/* Membership & Payment */}
+            {/* Membership (type only; no payment details - verified by Treasurer) */}
             <div className="mt-6">
-              <InfoSection title="Membership & Payment">
+              <InfoSection title="Membership">
                 <InfoItem
                   label="Membership Type"
                   value={formData.membershipType?.title}
                 />
-                <InfoItem
-                  label="Amount"
-                  value={(() => {
-                    // Determine currency based on multiple checks:
-                    // 1. Check citizenship field
-                    // 2. Check membershipType.id for '_foreign' suffix
-                    // 3. Check membershipType.currency
-                    let currency = 'INR'; // default
-                    if (formData.citizenship === 'foreign') {
-                      currency = 'USD';
-                    } else if (formData.citizenship === 'indian') {
-                      currency = 'INR';
-                    } else if (formData.membershipType?.id && formData.membershipType.id.includes('_foreign')) {
-                      // Check if membership type ID contains '_foreign' (e.g., 'patron_foreign')
-                      currency = 'USD';
-                    } else if (formData.membershipType?.currency) {
-                      currency = formData.membershipType.currency;
-                    }
-                    const symbol = currency === 'USD' ? '$' : '₹';
-                    const fee = formData.membershipType?.fee || 0;
-                    return `${symbol}${typeof fee === 'number' ? fee.toLocaleString() : fee}`;
-                  })()}
-                />
-                <InfoItem
-                  label="Created On"
-                  value={
-                    application.created_at
-                      ? new Date(application.created_at).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : undefined
-                  }
-                />
-                <InfoItem
-                  label="Forwarded On"
-                  value={
-                    application.updated_at
-                      ? new Date(application.updated_at).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : undefined
-                  }
-                />
               </InfoSection>
             </div>
 
-            {/* Documents - Only Passport Photo for Secretary */}
+            {/* Documents - Only Passport Photo for Secretary (no payment receipt) */}
             {formData.passportPhoto && (
               <div className="mt-6">
                 <InfoSection title="Documents">

@@ -196,33 +196,27 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
 
       if (!response.ok) throw new Error("Action failed");
 
-      // Close modal and detail panel
       setShowConfirmModal(false);
       setPendingAction(null);
-      onClose(); // Close the detail panel
 
-      // Refresh data before redirecting
+      // Refresh list and counts first so UI updates instantly when panel closes
       if (onActionComplete) {
-        onActionComplete();
+        await onActionComplete();
       }
-
-      // Small delay to ensure data refresh starts, then redirect
-      setTimeout(() => {
-        navigate("/dashboard/treasurer", { replace: true });
-      }, 100);
+      onClose();
+      navigate("/dashboard/treasurer", { replace: true });
     } catch (err) {
       console.error("Failed to process action:", err);
       alert("Failed to process the action. Please try again.");
       setShowConfirmModal(false);
       setPendingAction(null);
 
+      // Still refresh so UI stays in sync (e.g. if backend updated)
       if (onActionComplete) {
-        onActionComplete();
+        await onActionComplete();
       }
-      onClose(); // Close the detail panel
-      setTimeout(() => {
-        navigate("/dashboard/treasurer", { replace: true });
-      }, 100);
+      onClose();
+      navigate("/dashboard/treasurer", { replace: true });
     }
   };
 
@@ -309,7 +303,6 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
                   Application Details
                 </h2>
                 <p className="mt-2 text-sm text-gray-500">
-                  {/* ID:{" "} */}
                   <span className="font-semibold text-gray-700">
                     {application.application_number || application.uuid}
                   </span>
@@ -317,72 +310,24 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
               </div>
             </div>
 
-            {/* Personal & Contact Info Grid */}
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              <InfoSection title="Personal Information">
-                <InfoItem label="Full Name" value={formData.name} />
-                <InfoItem
-                  label="Date of Birth"
-                  value={
-                    formData.dobDay
-                      ? `${formData.dobDay} ${formData.dobMonth} ${formData.dobYear}`
-                      : undefined
-                  }
-                />
-                <InfoItem
-                  label="Qualification"
-                  value={formData.qualification}
-                />
-                <InfoItem label="Affiliation" value={formData.affiliation} />
-                <InfoItem label="Citizenship" value={formData.citizenship} />
-                {formData.passportNumber && (
-                  <InfoItem
-                    label="Passport Number"
-                    value={formData.passportNumber}
-                  />
-                )}
-              </InfoSection>
-
-              <InfoSection title="Contact Information">
+            {/* Applicant (name, email, phone only) */}
+            <div className="mt-8">
+              <InfoSection title="Applicant">
+                <InfoItem label="Name" value={application.name || formData.name} />
                 <InfoItem
                   label="Email"
                   value={application.email || formData.email}
                 />
                 <InfoItem
                   label="Phone"
-                  value={`${formData.phoneCode || ''} ${formData.phoneNumber || ''}`}
+                  value={`${formData.phoneCode || ''} ${formData.phoneNumber || ''}`.trim() || 'N/A'}
                 />
-                <InfoItem
-                  label="Address"
-                  value={`${formData.addressLine1 || ''}, ${formData.addressLine2 || ''}, ${formData.city || ''}, ${formData.state || ''} - ${formData.postalCode || ''}`}
-                />
-                <InfoItem label="Country" value={formData.country} />
               </InfoSection>
             </div>
 
-            {/* Institutional Representatives */}
-            {(formData.representativeOne || formData.representativeTwo) && (
-              <div className="mt-6">
-                <InfoSection title="Institutional Representatives">
-                  {formData.representativeOne && (
-                    <InfoItem
-                      label="Representative 1"
-                      value={formData.representativeOne}
-                    />
-                  )}
-                  {formData.representativeTwo && (
-                    <InfoItem
-                      label="Representative 2"
-                      value={formData.representativeTwo}
-                    />
-                  )}
-                </InfoSection>
-              </div>
-            )}
-
-            {/* Membership & Payment */}
+            {/* Payment & related details only */}
             <div className="mt-6">
-              <InfoSection title="Membership & Payment">
+              <InfoSection title="Payment & Related">
                 <InfoItem
                   label="Membership Type"
                   value={formData.membershipType?.title}
@@ -390,21 +335,11 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
                 <InfoItem
                   label="Amount"
                   value={(() => {
-                    // Determine currency based on multiple checks:
-                    // 1. Check citizenship field
-                    // 2. Check membershipType.id for '_foreign' suffix
-                    // 3. Check membershipType.currency
-                    let currency = 'INR'; // default
-                    if (formData.citizenship === 'foreign') {
-                      currency = 'USD';
-                    } else if (formData.citizenship === 'indian') {
-                      currency = 'INR';
-                    } else if (formData.membershipType?.id && formData.membershipType.id.includes('_foreign')) {
-                      // Check if membership type ID contains '_foreign' (e.g., 'patron_foreign')
-                      currency = 'USD';
-                    } else if (formData.membershipType?.currency) {
-                      currency = formData.membershipType.currency;
-                    }
+                    let currency = 'INR';
+                    if (formData.citizenship === 'foreign') currency = 'USD';
+                    else if (formData.citizenship === 'indian') currency = 'INR';
+                    else if (formData.membershipType?.id && formData.membershipType.id.includes('_foreign')) currency = 'USD';
+                    else if (formData.membershipType?.currency) currency = formData.membershipType.currency;
                     const symbol = currency === 'USD' ? '$' : '₹';
                     const fee = formData.membershipType?.fee || 0;
                     return `${symbol}${typeof fee === 'number' ? fee.toLocaleString() : fee}`;
@@ -412,98 +347,61 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
                 />
                 <InfoItem
                   label="Payment Reference"
-                  value={formData.paymentReference}
+                  value={formData.paymentReference || application.paymentReference}
                 />
                 <InfoItem
-                  label="Created On"
+                  label="Created at"
                   value={
                     application.created_at
-                      ? new Date(application.created_at).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : undefined
+                      ? new Date(application.created_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"
                   }
                 />
                 <InfoItem
-                  label="Forwarded On"
+                  label="Last submitted at"
                   value={
                     application.updated_at
-                      ? new Date(application.updated_at).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : undefined
+                      ? new Date(application.updated_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"
                   }
                 />
               </InfoSection>
             </div>
 
-            {/* Documents */}
-            {(formData.passportPhoto || formData.paymentReceipt) && (
+            {/* Payment receipt document */}
+            {formData.paymentReceipt && (
               <div className="mt-6">
-                <InfoSection title="Documents">
+                <InfoSection title="Receipt">
                   <div className="pt-2 flex gap-3 flex-wrap">
-                    {formData.passportPhoto && (
-                      <a
-                        href={`${BACKEND_URL}/membership/${application.uuid}/passportPhoto`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition border border-blue-200"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Passport Photo
-                      </a>
-                    )}
-                    {formData.paymentReceipt && (
-                      <a
-                        href={`${BACKEND_URL}/membership/${application.uuid}/paymentReceipt`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition border border-green-200"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Payment Receipt
-                      </a>
-                    )}
+                    <a
+                      href={`${BACKEND_URL}/membership/${application.uuid}/paymentReceipt`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition border border-green-200"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      View Payment Receipt
+                    </a>
                   </div>
                 </InfoSection>
               </div>
             )}
 
-            {/* Applicant Notes */}
+            {/* Applicant notes (payment/application related) */}
             {formData.notes && formData.notes.trim() && (
               <div className="mt-6">
                 <InfoSection title="Applicant Notes">
