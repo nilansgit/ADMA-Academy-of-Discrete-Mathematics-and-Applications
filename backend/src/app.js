@@ -12,12 +12,12 @@ app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/auth',authRoutes);
-app.use('/users', userRoutes);
-app.use('/forms',formRoutes);
-app.use('/treasurer',treasurerRoutes);
-app.use('/secretary',secretaryRoutes);
-app.use('/membership',membershipRoutes);
+app.use('/api/auth',authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/forms',formRoutes);
+app.use('/api/treasurer',treasurerRoutes);
+app.use('/api/secretary',secretaryRoutes);
+app.use('/api/membership',membershipRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');
