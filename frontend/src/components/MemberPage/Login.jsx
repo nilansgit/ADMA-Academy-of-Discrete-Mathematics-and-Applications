@@ -21,7 +21,7 @@ export default function Login() {
 
   const handleLogin = async (email,password) => {
     try{
-      const url = new URL(`${BACKEND_URL}/auth/login`)
+      const url = new URL(`${BACKEND_URL}/auth/login`,window.location.origin)
       const res = await fetch(url, {
         method: "POST",
         headers: {"Content-Type": "application/json"},

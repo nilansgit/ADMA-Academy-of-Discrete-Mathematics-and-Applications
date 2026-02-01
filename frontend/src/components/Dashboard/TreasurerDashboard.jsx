@@ -182,7 +182,7 @@ function DetailPanel({ application, remark, setRemark, onClose, isLoading, onAct
 
     try {
       const url = new URL(
-        `${BACKEND_URL}/treasurer/${application.uuid}/${pendingAction}`
+        `${BACKEND_URL}/treasurer/${application.uuid}/${pendingAction}`,window.location.origin
       );
 
       const response = await fetch(url, {
@@ -527,7 +527,7 @@ export default function TreasurerDashboard() {
   
   // Function to fetch forms detail
   const fetchFormsDetail = async() => {
-    const url = new URL(`${BACKEND_URL}/treasurer/forms`)
+    const url = new URL(`${BACKEND_URL}/treasurer/forms`,window.location.origin)
     Status.forEach(status => {
       url.searchParams.append("status",status)
     })
@@ -679,7 +679,7 @@ export default function TreasurerDashboard() {
                   setRemark("");
                   
                   try {
-                    const url = new URL(`${BACKEND_URL}/treasurer/forms/${data.uuid}`);
+                    const url = new URL(`${BACKEND_URL}/treasurer/forms/${data.uuid}`,window.location.origin);
                     if (data.status) {
                       url.searchParams.append('status', data.status);
                     }

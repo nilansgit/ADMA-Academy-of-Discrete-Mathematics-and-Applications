@@ -165,7 +165,7 @@ function DetailPanel({
 
     try {
       const url = new URL(
-        `${BACKEND_URL}/secretary/${application.uuid}/${pendingAction}`
+        `${BACKEND_URL}/secretary/${application.uuid}/${pendingAction}`,window.location.origin
       );
 
       const response = await fetch(url, {
@@ -523,7 +523,7 @@ export default function SecretaryDashboard() {
 
   // Fetch forms detail
   const fetchFormsDetail = async () => {
-    const url = new URL(`${BACKEND_URL}/secretary/forms`);
+    const url = new URL(`${BACKEND_URL}/secretary/forms`,window.location.origin);
     Status.forEach((status) => {
       url.searchParams.append("status", status);
     });
@@ -546,7 +546,7 @@ export default function SecretaryDashboard() {
 
   // Function to fetch forms count
   const fetchFormsCount = () => {
-    return fetch(`${BACKEND_URL}/secretary/formsCount`, {
+    return fetch(`${BACKEND_URL}/secretary/formsCount`,window.location.origin, {
       headers: { authorization: window.localStorage.getItem("token") },
     })
       .then((res) => {
@@ -699,7 +699,7 @@ export default function SecretaryDashboard() {
 
                   try {
                     const url = new URL(
-                      `${BACKEND_URL}/secretary/forms/${data.uuid}`
+                      `${BACKEND_URL}/secretary/forms/${data.uuid}`,window.location.origin
                     );
                     if (data.status) {
                       url.searchParams.append("status", data.status);
