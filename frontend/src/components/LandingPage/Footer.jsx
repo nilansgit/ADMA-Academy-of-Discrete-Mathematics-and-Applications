@@ -13,11 +13,8 @@ export default function Footer() {
                 <a href="/login" className="hover:underline">Official Login</a>
               </li>
               <li>
-                <a href={`${STRAPI_BASE_URL}`} className="hover:underline">Editor's Desk</a>
+                <a href={`${STRAPI_BASE_URL}`} target="_blank" className="hover:underline">Editor's Desk</a>
               </li>
-              {/* <li>
-                <a href="/membership/apply" className="hover:underline">Join ADMA</a>
-              </li> */}
             </ul>
           </div>
 
