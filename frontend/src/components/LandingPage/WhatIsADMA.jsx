@@ -16,7 +16,7 @@ export default function WhatIsADMA() {
           <div className="rounded-2xl bg-white p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-gray-900">What is ADMA?</h2>
             <p className="mt-4 leading-relaxed text-gray-700">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi molestie sapien id felis feugiat pharetra. Donec ac libero non velit bibendum pretium at vitae quam. Cras vel convallis tellus. Donec lobortis neque ut mattis vulputate. Ut pellientesque ligula aliquam leo tincidunt iaculis. Donec vel leo at augue faucibus commodo. Nulla a leo turpis. Pellentesque fringilla tellus in urna placerat posuere. Aliquam vitae turpis at turpis aliquet dapibus eget dapibus.
+              The Academy of Discrete Mathematics and Applications (ADMA) is a registered professional body functioning with the aim of promoting active and quality research in Discrete Mathematics and allied subjects. Established in 2005, it has been successfully disseminating front-line research culture among the discrete mathematicians in India. Its annual conferences are being organized every year in the month of June so that the dates of the conference include June 10th as Graph Theory Day marking the birth anniversary of Professor E. Sampathkumar, the pioneer in introducing Graph Theory into the postgraduate curriculum in India during the academic year 1970-71 at the famed Karnatak University, Dharwad.
             </p>
           </div>
         </div>
@@ -24,4 +24,3 @@ export default function WhatIsADMA() {
     </section>
   )
 }
-

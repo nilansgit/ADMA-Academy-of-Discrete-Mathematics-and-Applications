@@ -1,6 +1,7 @@
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 import WhatIsADMA from "./WhatIsADMA";
+import FoundingOfADMA from "./FoundingOfADMA";
 import Publications from "./Publications";
 import UpcomingEvents from "./UpcomingEvents";
 import BulletinBoard from "./BulletinBoard";
@@ -20,7 +21,8 @@ export default function LandingPage() {
       <Navbar onBecomeMemberClick={openModal} />
       <Hero onRegisterNowClick={handleApplyNow} />
       <WhatIsADMA />
-      <Publications />
+      <FoundingOfADMA />
+      {/* <Publications /> */}
       <UpcomingEvents />
       <BulletinBoard />
       <ConferencesWorkshops />
