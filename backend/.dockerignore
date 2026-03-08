@@ -1,0 +1,12 @@
+node_modules
+.env
+.git
+npm-debug.log
+Dockerfile
+.dockerignore
+
+# Ignore uploaded files
+uploads/*
+
+# Keep folder structure
+!uploads/.gitkeep

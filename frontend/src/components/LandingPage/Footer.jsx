@@ -22,16 +22,16 @@ export default function Footer() {
           <div>
             <h3 className="mb-4 text-lg font-bold">E-mail :</h3>
             <p className="mb-4">
-              <a href="mailto:office@adma.co.in" className="hover:underline">
-                office@adma.co.in
+              <a href="mailto:shyam.kamath@gmail.com" className="hover:underline">
+                shyam.kamath@gmail.com
               </a>
             </p>
-            <h3 className="mb-4 text-lg font-bold">Phone :</h3>
+            {/* <h3 className="mb-4 text-lg font-bold">Phone :</h3>
             <p>
               <a href="tel:0821-2302003" className="hover:underline">
                 0821-2302003
               </a>
-            </p>
+            </p> */}
           </div>
 
           {/* Address */}

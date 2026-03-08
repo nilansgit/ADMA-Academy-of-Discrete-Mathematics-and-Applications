@@ -1,0 +1,62 @@
+version: "1.0"
+
+services:
+
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/uploads:/backend/uploads
+  
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: /api
+        VITE_STRAPI_URL: /cms
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  
+  cms:
+    build: ./cms
+    restart: unless-stopped
+    env_file:
+      - ./cms/.env
+    volumes:
+      - ./cms/public/uploads:/cms/public/uploads
+      - ./cms/data:/cms/.tmp
+    depends_on:
+      - mysql
+  
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
+      - backend
+      - cms
+
+
+volumes:
+  mysql-data:
