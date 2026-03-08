@@ -52,3 +52,6 @@ backend/uploads/**
 
 # docker compose (local dev)
 backend/docker-compose.yml
+
+cms/data/*
+!cms/data/.gitkeep*.db

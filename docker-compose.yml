@@ -41,7 +41,7 @@ services:
       - ./cms/.env
     volumes:
       - ./cms/public/uploads:/cms/public/uploads
-      - ./cms/data:/cms/.tmp
+      - ./cms/data:/cms/.data
     depends_on:
       - mysql
   
