@@ -37,15 +37,14 @@ const phoneCountryCodes = getPhoneCountryCodes();
 const countries = getCountriesList();
 
 const BANK_DETAILS = {
-  accountName: 'Academy of Discrete Mathematics and Applications',
-  accountNumber: '1234567890123456',
-  ifscCode: 'BANK0001234',
-  bankName: 'State Bank of India',
-  branch: 'Mysore Main Branch',
-  upiId: 'adma@paytm',
-  swiftCode: 'SBININBB123',
-}
-
+  accountName: "Academy of Discrete Mathematics and Applications",
+  accountNumber: "32536859331",
+  ifscCode: "SBIN0040059",
+  bankName: "State Bank of India",
+  branch: "University Campus, Mysore",
+  upiId: "9341094110@sbi",
+  swiftCode: "SBININBB123",
+};
 
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024;    // 2MB
 const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;  // 5MB
@@ -1005,11 +1004,12 @@ export default function MembershipForm() {
                       <dt className="mb-2 text-sm font-medium text-gray-700">UPI ID</dt>
                       <dd className="font-mono text-lg text-gray-900">{BANK_DETAILS.upiId}</dd>
                     </div>
-                    <div className="mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8">
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500">UPI QR Code</p>
-                        <p className="mt-2 text-xs text-gray-400">(QR code image will be displayed here)</p>
-                      </div>
+                    <div className="mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-4">
+                      <img
+                        src="/upi_qr.png"
+                        alt="UPI QR Code"
+                        className="max-w-xs h-auto"
+                      />
                     </div>
                   </div>
                 </div>
