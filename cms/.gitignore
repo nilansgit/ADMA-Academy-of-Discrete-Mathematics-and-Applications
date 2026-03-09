@@ -71,6 +71,10 @@ $RECYCLE.BIN/
 *.sqlite
 *.sqlite3
 
+# Strapi Data
+data/*
+!data/.gitkeep
+
 
 ############################
 # Misc.
