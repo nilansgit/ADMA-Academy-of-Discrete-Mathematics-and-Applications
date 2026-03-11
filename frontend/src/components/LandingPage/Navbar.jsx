@@ -49,7 +49,8 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
         {/* Desktop Button */}
         <div className="hidden sm:block">
           <button
-            onClick={onBecomeMemberClick}
+            // onClick={onBecomeMemberClick}
+            onClick={() => alert("Membership registration will be available soon. Please check back later")}
             className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Become a Member
@@ -114,10 +115,11 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
             </li>
             <li className="pt-3 pb-2">
               <button
-                onClick={() => {
-                  onBecomeMemberClick()
-                  setMobileMenuOpen(false)
-                }}
+                // onClick={() => {
+                //   onBecomeMemberClick()
+                //   setMobileMenuOpen(false)
+                // }}
+                onClick={() => alert("Membership registration will be available soon. Please check back later")}
                 className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:from-blue-700 hover:to-blue-800"
               >
                 Become a Member
