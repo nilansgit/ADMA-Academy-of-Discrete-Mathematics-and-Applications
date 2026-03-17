@@ -113,7 +113,16 @@ export default function GalleryPage() {
 
         const result = await response.json();
         if (result.data) {
-          setImages(result.data);
+          const flattenedImages = result.data.flatMap((item) =>
+            item.Image.map((img) => ({
+              id: `${item.id}-${img.id}`,
+              Title: item.Title,
+              Description: item.Description,
+              Image: img,
+            })),
+          );
+
+          setImages(flattenedImages);
         }
       } catch (err) {
         console.error("Error fetching images:", err);
@@ -121,6 +130,7 @@ export default function GalleryPage() {
         setLoading(false);
       }
     };
+
     fetchGalleryImages();
   }, []);
 
