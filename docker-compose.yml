@@ -1,7 +1,6 @@
 version: "1.0"
 
 services:
-
   mysql:
     image: mysql:8
     restart: unless-stopped
@@ -13,6 +12,20 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
+  ojs_db:
+    image: mariadb:11.4
+    environment:
+      MYSQL_ROOT_PASSWORD: "${OJS_MYSQL_ROOT_PASSWORD:-ojsPwd}"
+      MYSQL_DATABASE: "${OJS_DB_NAME:-ojs}"
+      MYSQL_USER: "${OJS_DB_USER:-ojs}"
+      MYSQL_PASSWORD: "${OJS_DB_PASSWORD:-ojsPwd}"
+    volumes:
+      - ./ojs/volumes/db:/var/lib/mysql
+      - ./ojs/volumes/db-import:/docker-entrypoint-initdb.d
+      #      - ./ojs/volumes/logs/db:/var/log/mysql
+      #      - ./ojs/volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
+    restart: unless-stopped
+
   backend:
     build: ./backend
     restart: unless-stopped
@@ -22,7 +35,7 @@ services:
       - ./backend/.env
     volumes:
       - ./backend/uploads:/backend/uploads
-  
+
   frontend:
     build:
       context: ./frontend
@@ -33,7 +46,6 @@ services:
     depends_on:
       - backend
 
-  
   cms:
     build: ./cms
     restart: unless-stopped
@@ -44,7 +56,21 @@ services:
       - ./cms/data:/cms/data
     depends_on:
       - mysql
-  
+
+  ojs:
+    image: "pkpofficial/${OJS_IMAGE:-ojs}:${OJS_VERSION:-latest}"
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - ./ojs/volumes/private:/var/www/files
+      - ./ojs/volumes/public:/var/www/html/public
+      - ./ojs/volumes/config/ojs.config.inc.php:/var/www/html/config.inc.php
+      #      - ./ojs/volumes/logs/app:/var/log/apache2
+      #      - ./ojs/volumes/config/apache.htaccess:/var/www/html/.htaccess
+      #      - ./ojs/volumes/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    depends_on:
+      - ojs_db
+    restart: unless-stopped
+
   gateway:
     image: nginx:alpine
     ports:
@@ -58,7 +84,7 @@ services:
       - frontend
       - backend
       - cms
-
+      - ojs
 
 volumes:
   mysql-data:
