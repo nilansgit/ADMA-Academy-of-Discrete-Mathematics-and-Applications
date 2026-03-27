@@ -29,7 +29,7 @@
 installed = Off
 
 ; The canonical URL to the OJS installation (excluding the trailing slash)
-base_url = "https://pkp.sfu.ca/ojs"
+base_url = "http://pkp.sfu.ca/ojs"
 
 ; Session cookie name
 session_cookie_name = OJSSID
