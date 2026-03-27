@@ -247,7 +247,7 @@ umask = 0022
 
 ; Force SSL connections site-wide and also sets the "Secure" flag for session cookies
 ; See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#secure
-force_ssl = Off
+force_ssl = On
 
 ; Force SSL connections for login only
 force_login_ssl = Off
