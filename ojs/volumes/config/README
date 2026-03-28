@@ -1,4 +1,6 @@
 Folder to keep your persistent config files
 
-IMP Note: DO NOT commit changed ojs.config.inc.php
-The ojs.config.inc.php here is a template for setup
+Setup Instructions:
+1. Clone the Repository
+2. rename config.TEMPLATE.inc.php to ojs.config.inc.php
+3. Then run the docker compose file

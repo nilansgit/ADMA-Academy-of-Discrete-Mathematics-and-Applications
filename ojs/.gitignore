@@ -11,3 +11,7 @@ volumes/db-import/*
 # Ignore completely
 volumes/private/
 volumes/public/
+
+# Only template ojs.config.inc.php should exist
+# Config changed by OJS should not be pushed
+volumes/config/ojs.config.inc.php
