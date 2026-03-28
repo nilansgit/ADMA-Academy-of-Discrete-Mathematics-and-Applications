@@ -64,6 +64,7 @@ services:
       - ./ojs/volumes/private:/var/www/files
       - ./ojs/volumes/public:/var/www/html/public
       - ./ojs/volumes/config/ojs.config.inc.php:/var/www/html/config.inc.php
+      - ./ojs/volumes/config/apache-https.conf:/etc/apache2/conf.d/https-forwarded.conf
       #      - ./ojs/volumes/logs/app:/var/log/apache2
       #      - ./ojs/volumes/config/apache.htaccess:/var/www/html/.htaccess
       #      - ./ojs/volumes/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
