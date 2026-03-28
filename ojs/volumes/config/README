@@ -1,6 +1,10 @@
 Folder to keep your persistent config files
 
 Setup Instructions:
-1. Clone the Repository
-2. rename config.TEMPLATE.inc.php to ojs.config.inc.php
+
+1. Clone the Repository, then run:
+2. cp config.TEMPLATE.inc.php ojs.config.inc.php
 3. Then run the docker compose file
+4. To be sure your volumes have the right permissions run:
+   i. sudo chown 100:101 ./volumes -R
+   ii. sudo chown 999:999 ./volumes/db -R
