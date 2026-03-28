@@ -29,7 +29,7 @@
 installed = Off
 
 ; The canonical URL to the OJS installation (excluding the trailing slash)
-base_url = "http://pkp.sfu.ca/ojs"
+base_url = "https://ijdm.adma.co.in"
 
 ; Session cookie name
 session_cookie_name = OJSSID
@@ -111,6 +111,7 @@ allowed_hosts = ''
 ; X_FORWARDED_FOR header.
 ; Warning: This defaults to "On" if unset for backwards compatibility.
 trust_x_forwarded_for = Off
+trusted_proxies[] = 0.0.0.0/0
 
 ; Display a message on the site admin and journal manager user home pages if there is an upgrade available
 show_upgrade_warning = On
@@ -247,7 +248,7 @@ umask = 0022
 
 ; Force SSL connections site-wide and also sets the "Secure" flag for session cookies
 ; See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#secure
-force_ssl = On
+force_ssl = Off
 
 ; Force SSL connections for login only
 force_login_ssl = Off
