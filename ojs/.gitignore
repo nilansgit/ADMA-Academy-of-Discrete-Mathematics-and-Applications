@@ -1,2 +1,13 @@
 .swp
 .sandbox
+
+# Retain folder structure
+volumes/db/*
+!volumes/db/README.md
+
+volumes/db-import/*
+!volumes/db-import/README.md
+
+# Ignore completely
+volumes/private/
+volumes/public/
