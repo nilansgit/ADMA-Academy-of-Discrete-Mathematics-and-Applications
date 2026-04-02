@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function ConferencesWorkshops() {
   const navigate = useNavigate();
   const [conferences, setConferences] = useState([]);
@@ -57,15 +61,22 @@ export default function ConferencesWorkshops() {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",
-                            }
+                            },
                           )}
                         </p>
                       )}
                     </div>
                     {conference.Description && (
-                      <p className="text-sm text-gray-700">
-                        {conference.Description}
-                      </p>
+                      <div className="text-sm text-gray-700">
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                          >
+                            {conference.Description}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))

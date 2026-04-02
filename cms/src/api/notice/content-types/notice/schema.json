@@ -11,12 +11,9 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "Title": {
-      "type": "string",
+    "Content": {
+      "type": "richtext",
       "required": true
-    },
-    "Description": {
-      "type": "string"
     },
     "Image": {
       "type": "media",

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function FoundingOfADMA() {
   const [founding, setFounding] = useState(null);
 
@@ -31,9 +35,16 @@ export default function FoundingOfADMA() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-white p-8 shadow-lg">
           <h2 className="text-3xl font-bold text-gray-900">{founding.Title}</h2>
-          <p className="mt-4 leading-relaxed text-gray-700">
-            {founding.Description}
-          </p>
+          <div className="mt-4 leading-relaxed text-gray-700">
+            <div className="prose max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              >
+                {founding.Description}
+              </ReactMarkdown>
+            </div>
+          </div>
         </div>
       </div>
     </section>

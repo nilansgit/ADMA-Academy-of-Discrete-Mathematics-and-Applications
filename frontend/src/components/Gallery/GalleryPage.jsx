@@ -86,9 +86,7 @@ function GalleryCard({ image, onClick }) {
             </h3>
           )}
           {image.Description && (
-            <p className="mt-1 text-xs text-gray-500 line-clamp-2">
-              {image.Description}
-            </p>
+            <p className="mt-1 text-xs text-gray-500">{image.Description}</p>
           )}
         </div>
       )}

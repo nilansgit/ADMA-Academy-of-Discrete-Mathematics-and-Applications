@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function WhatIsADMA() {
   const [about, setAbout] = useState(null);
 
@@ -41,9 +45,16 @@ export default function WhatIsADMA() {
         <div className="order-1 lg:order-2">
           <div className="rounded-2xl bg-white p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-gray-900">{about.Title}</h2>
-            <p className="mt-4 leading-relaxed text-gray-700">
-              {about.Description}
-            </p>
+            <div className="mt-4 leading-relaxed text-gray-700">
+              <div className="prose max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {about.Description}
+                </ReactMarkdown>
+              </div>
+            </div>
           </div>
         </div>
       </div>

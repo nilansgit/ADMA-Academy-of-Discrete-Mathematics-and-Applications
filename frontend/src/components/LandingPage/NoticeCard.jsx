@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function NoticeCard() {
   const [notice, setNotice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,6 @@ export default function NoticeCard() {
                   src={`${STRAPI_BASE_URL}${
                     notice.Image.formats?.small?.url || notice.Image.url
                   }`}
-                  alt={notice.Title}
                   className="max-h-[60vh] w-full object-contain bg-gray-50"
                 />
               </div>
@@ -85,15 +88,16 @@ export default function NoticeCard() {
 
             {/* Content */}
             <div className="p-5 sm:p-6 bg-white overflow-y-auto max-h-[35vh]">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-                {notice.Title}
-              </h3>
-
-              {notice.Description && (
-                <p className="mt-1.5 text-sm text-gray-600">
-                  {notice.Description}
-                </p>
-              )}
+              <div className="mt-1.5 text-gray-600">
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                  >
+                    {notice.Content}
+                  </ReactMarkdown>
+                </div>
+              </div>
 
               {(notice.PDF || notice.Link) && (
                 <div className="mt-4 flex justify-start">
@@ -124,7 +128,6 @@ export default function NoticeCard() {
                 src={`${STRAPI_BASE_URL}${
                   notice.Image.formats?.thumbnail?.url || notice.Image.url
                 }`}
-                alt={notice.Title}
                 className="h-22 w-22 rounded-lg object-cover shadow-sm sm:h-32 sm:w-32"
               />
             </div>
@@ -132,15 +135,16 @@ export default function NoticeCard() {
 
           {/* Content */}
           <div className="flex-1 pr-6 sm:pr-8">
-            <h3 className="text-sm font-semibold text-gray-900 sm:text-lg">
-              {notice.Title}
-            </h3>
-
-            {notice.Description && (
-              <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                {notice.Description}
-              </p>
-            )}
+            <div className="mt-2 text-gray-600 leading-relaxed">
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {notice.Content}
+                </ReactMarkdown>
+              </div>
+            </div>
 
             {(notice.PDF || notice.Link) && (
               <div className="mt-3 sm:mt-4">
