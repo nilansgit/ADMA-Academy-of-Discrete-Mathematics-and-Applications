@@ -16,7 +16,7 @@
       "required": true
     },
     "Description": {
-      "type": "string"
+      "type": "richtext"
     },
     "Date": {
       "type": "date"

@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function BulletinBoard() {
   const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState([]);
@@ -36,7 +40,7 @@ export default function BulletinBoard() {
       window.open(
         `${STRAPI_BASE_URL}${pdfUrl}`,
         "_blank",
-        "noopener,noreferrer"
+        "noopener,noreferrer",
       );
     } else if (externalLink) {
       window.open(externalLink, "_blank", "noopener,noreferrer");
@@ -78,9 +82,16 @@ export default function BulletinBoard() {
                     )}
 
                     {item.Description && (
-                      <p className="text-sm text-gray-600">
-                        {item.Description}
-                      </p>
+                      <div className="text-sm text-gray-600">
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                          >
+                            {item.Description}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     )}
                   </div>
 

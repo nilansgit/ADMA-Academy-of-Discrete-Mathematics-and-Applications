@@ -6,6 +6,10 @@ import MembershipModal from "../MemberPage/MembershipModal";
 import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 function BulletinBoard({ announcements, handleClick }) {
   const handleShowMore = (announcement) => {
     const pdfUrl = announcement.PDF?.url;
@@ -47,7 +51,16 @@ function BulletinBoard({ announcements, handleClick }) {
                 )}
 
                 {item.Description && (
-                  <p className="text-sm text-gray-600">{item.Description}</p>
+                  <div className="text-sm text-gray-600">
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                      >
+                        {item.Description}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -5,6 +5,10 @@ import MembershipModal from "../MemberPage/MembershipModal";
 import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 function ConferenceCard({ conference }) {
   const pdfUrl = conference.PDF?.url;
   const externalLink = conference.Link;
@@ -43,9 +47,16 @@ function ConferenceCard({ conference }) {
       </div>
 
       {conference.Description && (
-        <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-          {conference.Description}
-        </p>
+        <div className="mt-2 text-sm text-gray-600">
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {conference.Description}
+            </ReactMarkdown>
+          </div>
+        </div>
       )}
 
       {hasAction && (

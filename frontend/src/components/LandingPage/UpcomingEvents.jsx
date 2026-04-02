@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 export default function UpcomingEvents() {
   const EVENT_STATUS = "Upcoming";
   const LIMIT = 3;
@@ -34,7 +38,7 @@ export default function UpcomingEvents() {
       window.open(
         `${STRAPI_BASE_URL}${pdfUrl}`,
         "_blank",
-        "noopener,noreferrer"
+        "noopener,noreferrer",
       );
     } else if (externalLink) {
       window.open(externalLink, "_blank", "noopener,noreferrer");
@@ -71,9 +75,16 @@ export default function UpcomingEvents() {
                 )}
 
                 {item.Description && (
-                  <p className="mb-4 text-sm leading-relaxed text-gray-700">
-                    {item.Description}
-                  </p>
+                  <div className="mb-4 text-sm leading-relaxed text-gray-700">
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                      >
+                        {item.Description}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 )}
               </div>
 

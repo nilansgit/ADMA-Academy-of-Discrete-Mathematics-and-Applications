@@ -6,6 +6,10 @@ import MembershipModal from "../MemberPage/MembershipModal";
 import { useMembershipModal } from "../../hooks/useMembershipModal";
 import { STRAPI_BASE_URL } from "../../constants";
 
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+
 function EventCard({ event }) {
   const pdfUrl = event.PDF?.url;
   const externalLink = event.Link;
@@ -44,18 +48,23 @@ function EventCard({ event }) {
       </div>
 
       {event.Description && (
-        <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-          {event.Description}
-        </p>
+        <div className="mt-2 text-sm text-gray-600">
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {event.Description}
+            </ReactMarkdown>
+          </div>
+        </div>
       )}
 
       {hasAction && (
         <>
           <div className="mt-3 h-px w-full bg-gray-200" />
           <p className="mt-2 text-xs text-blue-600 underline">
-            {event.PDF
-              ? "View detailed schedule (PDF)"
-              : "View detailed schedule"}
+            {event.PDF ? "View details (PDF)" : "View details"}
           </p>
         </>
       )}

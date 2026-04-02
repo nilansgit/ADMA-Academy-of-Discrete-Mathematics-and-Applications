@@ -42,7 +42,7 @@ const BANK_DETAILS = {
   ifscCode: "SBIN0040059",
   bankName: "State Bank of India",
   branch: "University Campus, Mysore",
-  upiId: "9341094110@sbi",
+  upiId: "adma05@sbi",
   swiftCode: "SBININBB123",
 };
 
