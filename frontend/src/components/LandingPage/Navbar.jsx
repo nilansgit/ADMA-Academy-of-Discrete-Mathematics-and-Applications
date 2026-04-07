@@ -65,7 +65,7 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
           </li>
           <li>
             <a
-              href="#members"
+              href="/members"
               className="transition-colors hover:text-gray-900 hover:underline decoration-2 underline-offset-4"
             >
               Members

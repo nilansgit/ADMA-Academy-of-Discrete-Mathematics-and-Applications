@@ -1,6 +1,6 @@
 import { FORM_STATUS } from "../constants/formStatus.js";
-import { checkStatus } from "../models/forms.model.js";
-import { secretaryApprove, getAllForms, getCounts, getFormDetails, secretaryReject } from "../models/secretary.model.js";
+import { checkStatus, getFormByUUID } from "../models/forms.model.js";
+import {  getAllForms, getCounts, getFormDetails, secretaryReject, getMembershipNumberAndInsert } from "../models/secretary.model.js";
 
 
 export const secretaryApproveController = async (req, res) => {
@@ -11,8 +11,8 @@ export const secretaryApproveController = async (req, res) => {
   if (rows[0].status !== FORM_STATUS.FORWARDED_TO_SECRETARY) {
     return res.status(400).json({ error: "Invalid state" });
   }
-
-  await secretaryApprove(uuid);
+  
+  const membershipNumber =  await getMembershipNumberAndInsert(uuid);
 
   res.json({ success: true });
 };

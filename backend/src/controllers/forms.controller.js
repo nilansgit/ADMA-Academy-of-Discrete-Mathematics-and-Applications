@@ -1,7 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
-import { createForm, getFormByUUID, saveDraft, submitForm, checkStatus, uploadFile } from "../models/forms.model.js";
+import { createForm, getFormByUUID, saveDraft, submitForm, checkStatus, uploadFile, getEmailData } from "../models/forms.model.js";
 import {FORM_STATUS, EDITABLE_STATES} from "../constants/formStatus.js";
 import { deleteFileIfExists } from "../services/fileCleanup.service.js";
+import { freshAppSubmit } from "../services/email/providers/templates/freshAppSubmit.js";
+import { sendEmail } from "../services/email/emailService.js";
 
 
 export const createFormController = async (req, res) => {
@@ -72,10 +74,20 @@ export const submitFormController = async(req,res) => {
     return res.status(400).json({ error: "Form already submitted" });
   }
 
-  await submitForm(uuid,currentStatus,rows[0].id);
-  console.log("form Submiited",uuid);
+  const result = await submitForm(uuid,currentStatus,rows[0].id);
+  console.log(result);
 
-  res.json({success: true});
+  if (result) {
+    if(currentStatus === FORM_STATUS.DRAFT){
+      const rows = await getEmailData(uuid);
+      const name = rows[0].name || "Applicant";
+      const email = rows[0].email;
+      const appNumber = rows[0].application_number;
+      const html = freshAppSubmit({name: name, applicationNumber:appNumber});
+      await sendEmail({ to: email, subject: "Your Application has been submited Successfully", html: html, from: process.env.NOREPLY_FROM});
+    }
+    res.json({success: true});
+  }
 }
 
 export const uploadFileController =  async(req,res) => {
