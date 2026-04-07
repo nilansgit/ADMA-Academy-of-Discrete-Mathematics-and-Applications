@@ -12,6 +12,7 @@ import AnnouncementArchivesPage from "./components/Announcements/AnnouncementArc
 import OfficeBearersPage from "./components/OfficeBearers/OfficeBearersPage";
 import ConferencesPage from "./components/Conferences/ConferencesPage";
 import GalleryPage from "./components/Gallery/GalleryPage";
+import Members from "./components/MemberPage/Members";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         <Route path="/office-bearers" element={<OfficeBearersPage />} />
         <Route path="/conferences" element={<ConferencesPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/members" element= { <Members /> } />
       </Routes>
     </Router>
   );

@@ -49,10 +49,10 @@ export const submitForm = async(uuid,currentStatus,id) => {
     const year = new Date().getFullYear();
     const applicationNumber = `ADMA-${year}-${String(id).padStart(6, '0')}`;
     const query = `UPDATE membership_forms set status= ?, application_number = ? WHERE uuid = ?`;
-    await pool.query(query,[setStatus,applicationNumber,uuid]);
+    return await pool.query(query,[setStatus,applicationNumber,uuid]);
   }else{
     const query = `UPDATE membership_forms set status= ? WHERE uuid = ?`;
-    await pool.query(query,[setStatus,uuid]);
+    return await pool.query(query,[setStatus,uuid]);
   }
 };
 
@@ -84,4 +84,12 @@ export const uploadFile = async(uuid,receipt_path, pp_path) => {
   }else{
     return "file not uploaded"
   }
+}
+
+
+
+export const getEmailData = async(uuid) => {
+  const query = `SELECT application_number, data->>'$.name' AS name, email  FROM membership_forms WHERE uuid = ?`;
+  const [rows] = await pool.query(query,[uuid]);
+  return rows;
 }

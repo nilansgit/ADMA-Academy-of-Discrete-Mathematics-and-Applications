@@ -21,6 +21,8 @@ model membership_forms {
   updated_at         DateTime?                @default(now()) @db.Timestamp(0)
   rejection_reason   String?                  @db.Text
   application_number String?                  @unique(map: "application_number") @db.VarChar(255)
+
+  member             members?
 }
 
 enum users_role {
@@ -36,4 +38,48 @@ enum membership_forms_status {
   TREASURER_REJECTED
   SECRETARY_REJECTED
   APPROVED
+}
+
+model members {
+  id                  Int      @id @default(autoincrement())
+  membership_number   String   @unique
+
+  name                String
+  email               String
+  phone               String?
+  citizenship         String?
+
+  membership_type     membership_type_enum
+
+  date_of_birth       DateTime?
+  qualification       String?
+
+  address_line1       String?
+  address_line2       String?
+  city                String?
+  state               String?
+  postal_code         String?
+  country             String?
+
+  form_id             BigInt?   @unique
+  form                membership_forms? @relation(fields: [form_id], references: [id])
+
+  extra_data          Json?
+  created_at          DateTime @default(now())
+
+  @@index([email])
+  @@index([name])
+  @@index([membership_number])
+}
+
+enum membership_type_enum {
+  LIFE_MEMBER_INDIVIDUAL
+  BENEFACTOR_LIFE_MEMBER
+  PATRON_LIFE_MEMBER
+  INSTITUTIONAL_MEMBER
+}
+
+model membershipCounter {
+  year Int @id
+  last_number Int
 }

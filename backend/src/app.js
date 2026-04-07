@@ -6,6 +6,7 @@ import formRoutes from './routes/forms.routes.js';
 import treasurerRoutes from './routes/treasurer.routes.js'
 import secretaryRoutes from './routes/secretary.routes.js'
 import membershipRoutes from './routes/membership.routes.js'
+import membersRoutes from './routes/members.routes.js'
 
 const app = express();
 app.use(express.json());
@@ -30,6 +31,7 @@ app.use('/api/forms',formRoutes);
 app.use('/api/treasurer',treasurerRoutes);
 app.use('/api/secretary',secretaryRoutes);
 app.use('/api/membership',membershipRoutes);
+app.use('/api/members',membersRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');
