@@ -151,7 +151,7 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
             </li>
             <li>
               <a
-                href="#members"
+                href="/members"
                 className="block py-3 transition-colors hover:text-gray-900"
                 onClick={() => setMobileMenuOpen(false)}
               >
