@@ -98,29 +98,24 @@ export default function GalleryPage() {
   const { isModalOpen, openModal, closeModal, handleApplyNow } =
     useMembershipModal();
 
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [loading, setLoading] = useState(true);
+
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGalleryImages = async () => {
       try {
         const response = await fetch(
-          `${STRAPI_BASE_URL}/api/gallery-images?populate=Image`,
+          `${STRAPI_BASE_URL}/api/gallery-images?populate=Image&sort=createdAt:desc&pagination[page]=${page}&pagination[pageSize]=2`,
         );
 
         const result = await response.json();
         if (result.data) {
-          const flattenedImages = result.data.flatMap((item) =>
-            item.Image.map((img) => ({
-              id: `${item.id}-${img.id}`,
-              Title: item.Title,
-              Description: item.Description,
-              Image: img,
-            })),
-          );
-
-          setImages(flattenedImages);
+          setImages(result.data);
+          setPageCount(result.meta.pagination.pageCount);
         }
       } catch (err) {
         console.error("Error fetching images:", err);
@@ -130,7 +125,7 @@ export default function GalleryPage() {
     };
 
     fetchGalleryImages();
-  }, []);
+  }, [page]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-amber-50">
@@ -169,17 +164,59 @@ export default function GalleryPage() {
               </div>
             </>
           ) : (
-            <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
-              {images.map((image) => (
-                <GalleryCard
-                  key={image.id}
-                  image={image}
-                  onClick={setSelectedImage}
-                />
+            <>
+              {images.map((section, index) => (
+                <div key={section.id} className={index > 0 ? "mt-12" : ""}>
+                  {/* Header */}
+                  <div className="mb-5 px-1">
+                    <h2 className="text-lg font-semibold text-yellow-700 tracking-wide">
+                      {section.Title}
+                    </h2>
+
+                    <div className="h-[2px] w-16 bg-yellow-500 rounded-full mt-1" />
+
+                    {section.Description && (
+                      <p className="text-sm text-gray-600 mt-2">
+                        {section.Description}
+                      </p>
+                    )}
+                  </div>
+                  {/* Images */}
+                  <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
+                    {section.Image.map((img) => (
+                      <GalleryCard
+                        key={`${section.id}-${img.id}`}
+                        image={{
+                          id: `${img.id}`,
+                          Image: img,
+                        }}
+                        onClick={setSelectedImage}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
-            </div>
+            </>
           )}
         </section>
+        {pageCount > 1 && (
+          <div className="flex justify-center mt-10 gap-2">
+            {[...Array(pageCount)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition
+          ${
+            page === i + 1
+              ? "bg-yellow-500 text-white shadow"
+              : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-yellow-50"
+          }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </main>
       <Footer />
 

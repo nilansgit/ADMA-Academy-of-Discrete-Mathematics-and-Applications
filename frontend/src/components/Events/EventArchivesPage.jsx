@@ -13,26 +13,10 @@ function EventCard({ event }) {
   const pdfUrl = event.PDF?.url;
   const externalLink = event.Link;
   const hasAction = !!(pdfUrl || externalLink);
-
-  const handleOpenLink = () => {
-    if (pdfUrl) {
-      window.open(
-        `${STRAPI_BASE_URL}${pdfUrl}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
-    } else if (externalLink) {
-      window.open(externalLink, "_blank", "noopener,noreferrer");
-    }
-  };
+  const actionHref = pdfUrl ? `${STRAPI_BASE_URL}${pdfUrl}` : externalLink;
 
   return (
-    <button
-      type="button"
-      onClick={handleOpenLink}
-      disabled={!hasAction}
-      className="block w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition hover:border-blue-400 hover:bg-blue-50/60"
-    >
+    <div className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-left">
       <div className="flex justify-between items-start gap-4">
         <p className="font-semibold text-gray-900 flex-1">{event.Title}</p>
         {event.Date && (
@@ -47,7 +31,7 @@ function EventCard({ event }) {
       </div>
 
       {event.Description && (
-        <p className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm text-gray-600">
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -56,20 +40,25 @@ function EventCard({ event }) {
               {event.Description}
             </ReactMarkdown>
           </div>
-        </p>
+        </div>
       )}
 
       {hasAction && (
         <>
           <div className="mt-3 h-px w-full bg-gray-200" />
-          <p className="mt-2 text-xs text-blue-600 underline">
+          <a
+            href={actionHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs text-blue-600 underline"
+          >
             {event.PDF
               ? "View detailed schedule (PDF)"
               : "View detailed schedule"}
-          </p>
+          </a>
         </>
       )}
-    </button>
+    </div>
   );
 }
 
