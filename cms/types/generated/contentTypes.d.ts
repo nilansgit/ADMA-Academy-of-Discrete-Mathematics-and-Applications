@@ -522,6 +522,37 @@ export interface ApiConferenceConference extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEndowmentLectureEndowmentLecture
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'endowment_lectures';
+  info: {
+    displayName: 'Endowment Lecture';
+    pluralName: 'endowment-lectures';
+    singularName: 'endowment-lecture';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Description: Schema.Attribute.RichText;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::endowment-lecture.endowment-lecture'
+    > &
+      Schema.Attribute.Private;
+    PDF: Schema.Attribute.Media<'files'>;
+    publishedAt: Schema.Attribute.DateTime;
+    Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   collectionName: 'events';
   info: {
@@ -550,6 +581,37 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     PDF: Schema.Attribute.Media<'files'>;
     publishedAt: Schema.Attribute.DateTime;
     Title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiFinancialAuditedStatementFinancialAuditedStatement
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'financial_audited_statements';
+  info: {
+    displayName: '\u2060Financial Audited Statement';
+    pluralName: 'financial-audited-statements';
+    singularName: 'financial-audited-statement';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    End_Year: Schema.Attribute.Integer;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::financial-audited-statement.financial-audited-statement'
+    > &
+      Schema.Attribute.Private;
+    PDF: Schema.Attribute.Media<'files'> & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    Start_Year: Schema.Attribute.Integer & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1269,7 +1331,9 @@ declare module '@strapi/strapi' {
       'api::about.about': ApiAboutAbout;
       'api::bulletin.bulletin': ApiBulletinBulletin;
       'api::conference.conference': ApiConferenceConference;
+      'api::endowment-lecture.endowment-lecture': ApiEndowmentLectureEndowmentLecture;
       'api::event.event': ApiEventEvent;
+      'api::financial-audited-statement.financial-audited-statement': ApiFinancialAuditedStatementFinancialAuditedStatement;
       'api::founding.founding': ApiFoundingFounding;
       'api::gallery-image.gallery-image': ApiGalleryImageGalleryImage;
       'api::notice.notice': ApiNoticeNotice;

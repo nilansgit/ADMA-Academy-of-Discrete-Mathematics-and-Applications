@@ -13,6 +13,8 @@ import OfficeBearersPage from "./components/OfficeBearers/OfficeBearersPage";
 import ConferencesPage from "./components/Conferences/ConferencesPage";
 import GalleryPage from "./components/Gallery/GalleryPage";
 import Members from "./components/MemberPage/Members";
+import EndowmentLecturesPage from './components/EndowmentLectures/EndowmentLecturesPage'
+import FinancialStatementsPage from './components/FinancialStatements/FinancialStatementsPage'
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
         <Route path="/announcements/archives" element={<AnnouncementArchivesPage />} />
         <Route path="/office-bearers" element={<OfficeBearersPage />} />
         <Route path="/conferences" element={<ConferencesPage />} />
+        <Route path="/endowment-lectures" element={<EndowmentLecturesPage />} />
+        <Route path="/financial-statements" element={<FinancialStatementsPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/members" element= { <Members /> } />
       </Routes>

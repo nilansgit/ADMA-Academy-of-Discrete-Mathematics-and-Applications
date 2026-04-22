@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "financial_audited_statements",
+  "info": {
+    "singularName": "financial-audited-statement",
+    "pluralName": "financial-audited-statements",
+    "displayName": "⁠Financial Audited Statement"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Start_Year": {
+      "type": "integer",
+      "required": true
+    },
+    "End_Year": {
+      "type": "integer"
+    },
+    "PDF": {
+      "type": "media",
+      "multiple": false,
+      "required": true,
+      "allowedTypes": [
+        "files"
+      ]
+    }
+  }
+}
