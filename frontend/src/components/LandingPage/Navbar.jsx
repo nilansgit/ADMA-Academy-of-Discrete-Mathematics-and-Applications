@@ -6,7 +6,7 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-gradient-to-r from-yellow-50 to-amber-50 backdrop-blur-sm">
+    <header className="relative z-50 w-full bg-gradient-to-r from-yellow-50 to-amber-50 backdrop-blur-sm">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
         <Link
           to="/"
@@ -47,6 +47,14 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
           </li>
           <li>
             <a
+              href="/conferences"
+              className="transition-colors hover:text-gray-900 hover:underline decoration-2 underline-offset-4"
+            >
+              Conferences
+            </a>
+          </li>
+          <li>
+            <a
               href="https://ijdm.adma.co.in"
               target="_blank"
               rel="noopener,noreferrer"
@@ -63,13 +71,41 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
               Gallery
             </a>
           </li>
-          <li>
-            <a
-              href="/members"
-              className="transition-colors hover:text-gray-900 hover:underline decoration-2 underline-offset-4"
+          <li className="relative group">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 transition-colors hover:text-gray-900 hover:underline decoration-2 underline-offset-4"
             >
-              Members
-            </a>
+              More ▾
+            </button>
+            <div className="invisible absolute right-0 z-50 mt-3 min-w-[220px] rounded-xl border border-amber-100 bg-white shadow-lg opacity-0 transition-all group-hover:visible group-hover:opacity-100">
+              <div className="flex flex-col py-2">
+                <Link
+                  to="/members"
+                  className="px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-amber-50 hover:text-gray-900"
+                >
+                  Members
+                </Link>
+                <Link
+                  to="/office-bearers"
+                  className="px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-amber-50 hover:text-gray-900"
+                >
+                  Office Bearers
+                </Link>
+                <Link
+                  to="/endowment-lectures"
+                  className="px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-amber-50 hover:text-gray-900"
+                >
+                  Endowment Lectures
+                </Link>
+                <Link
+                  to="/financial-statements"
+                  className="px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-amber-50 hover:text-gray-900"
+                >
+                  Financial Statements
+                </Link>
+              </div>
+            </div>
           </li>
         </ul>
 
@@ -130,6 +166,15 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
               </Link>
             </li>
             <li>
+              <Link
+                to="/conferences"
+                className="block py-3 transition-colors hover:text-gray-900"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Conferences
+              </Link>
+            </li>
+            <li>
               <a
                 href="https://ijdm.adma.co.in"
                 target="_blank"
@@ -157,6 +202,33 @@ export default function Navbar({ onBecomeMemberClick = () => {} }) {
               >
                 Members
               </a>
+            </li>
+            <li>
+              <Link
+                to="/office-bearers"
+                className="block py-3 transition-colors hover:text-gray-900"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Office Bearers
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/endowment-lectures"
+                className="block py-3 transition-colors hover:text-gray-900"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Endowment Lectures
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/financial-statements"
+                className="block py-3 transition-colors hover:text-gray-900"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Financial Statements
+              </Link>
             </li>
             <li className="pt-3 pb-2">
               <button

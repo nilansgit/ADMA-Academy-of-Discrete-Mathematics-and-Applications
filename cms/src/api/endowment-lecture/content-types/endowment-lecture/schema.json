@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "endowment_lectures",
+  "info": {
+    "singularName": "endowment-lecture",
+    "pluralName": "endowment-lectures",
+    "displayName": "Endowment Lecture"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string",
+      "required": true
+    },
+    "Description": {
+      "type": "richtext"
+    },
+    "PDF": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "files"
+      ]
+    }
+  }
+}
